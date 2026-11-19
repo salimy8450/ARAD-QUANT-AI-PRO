@@ -1,35 +1,57 @@
-"""Ourbit Futures public market-data adapter.
-
-Paths are based on Ourbit's published V1 contract Postman collection.
-This adapter is read-only: no account endpoints, signatures, or order routes.
-The API host is configurable because endpoint reachability must be checked
-from the eventual deployment region before declaring the feed live.
-"""
+"""Read-only Ourbit Futures public market-data adapter with host failover."""
 from __future__ import annotations
 
 import os
 import time
 from typing import Any
+
 import httpx
 
 
 class OurbitFutures:
     def __init__(self) -> None:
-        self.base_url = os.getenv(
+        configured = os.getenv(
             "OURBIT_FUTURES_BASE_URL", "https://contract.ourbit.com"
         ).strip().rstrip("/")
-        self.timeout = float(os.getenv("OURBIT_HTTP_TIMEOUT", "8"))
+        # The contract Postman collection documents contract.ourbit.com.
+        # futures.ourbit.com is a secondary candidate; it is not assumed live
+        # until a real ping succeeds from this deployment.
+        candidates = [configured, "https://futures.ourbit.com"]
+        self.base_urls = list(dict.fromkeys(url for url in candidates if url))
+        self.base_url = self.base_urls[0] if self.base_urls else ""
+        self.timeout = float(os.getenv("OURBIT_HTTP_TIMEOUT", "10"))
 
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
-        if not self.base_url:
-            raise RuntimeError("OURBIT_FUTURES_BASE_URL is empty")
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-            response = await client.get(f"{self.base_url}{path}", params=params)
-            response.raise_for_status()
-            payload = response.json()
-            if isinstance(payload, dict) and payload.get("success") is False:
-                raise RuntimeError(f"Ourbit API rejected request: {payload}")
-            return payload
+        if not self.base_urls:
+            raise RuntimeError("No Ourbit API base URL configured")
+        errors: list[str] = []
+        limits = httpx.Limits(max_connections=4, max_keepalive_connections=2)
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(self.timeout, connect=min(self.timeout, 5.0)),
+            follow_redirects=True,
+            limits=limits,
+        ) as client:
+            for host in self.base_urls:
+                try:
+                    response = await client.get(f"{host}{path}", params=params)
+                    response.raise_for_status()
+                    payload = response.json()
+                    if isinstance(payload, dict):
+                        if payload.get("success") is False:
+                            raise RuntimeError(f"Ourbit API rejected request: {payload}")
+                        if payload.get("code") not in (None, 0, 200, "0", "200"):
+                            raise RuntimeError(f"Ourbit API returned code: {payload.get('code')}")
+                    self.base_url = host
+                    return payload
+                except httpx.HTTPStatusError as exc:
+                    status = exc.response.status_code
+                    errors.append(f"{host}: HTTP {status}")
+                    # Do not retry client-side errors on another hostname.
+                    if status < 500:
+                        raise
+                except (httpx.HTTPError, OSError, RuntimeError, ValueError) as exc:
+                    errors.append(f"{host}: {str(exc)[:180]}")
+        raise RuntimeError("All Ourbit API hosts failed: " + " | ".join(errors))
 
     async def ping(self) -> Any:
         return await self._get("/api/v1/contract/ping")
@@ -41,8 +63,13 @@ class OurbitFutures:
         params = {"symbol": symbol} if symbol else None
         return await self._get("/api/v1/contract/ticker", params)
 
-    async def candles(self, symbol: str, interval: str = "Min5",
-                      start_ms: int | None = None, end_ms: int | None = None) -> Any:
+    async def candles(
+        self,
+        symbol: str,
+        interval: str = "Min5",
+        start_ms: int | None = None,
+        end_ms: int | None = None,
+    ) -> Any:
         params: dict[str, Any] = {"interval": interval}
         if start_ms is not None:
             params["start"] = start_ms
@@ -59,6 +86,7 @@ class OurbitFutures:
                 "latency_ms": round((time.perf_counter() - started) * 1000),
                 "host": self.base_url,
                 "ping_response": data,
+                "tested_hosts": self.base_urls,
                 "private_key_required": False,
                 "trading_enabled": False,
             }
@@ -67,7 +95,8 @@ class OurbitFutures:
                 "connected": False,
                 "latency_ms": None,
                 "host": self.base_url,
-                "error": str(exc)[:300],
+                "tested_hosts": self.base_urls,
+                "error": str(exc)[:600],
                 "private_key_required": False,
                 "trading_enabled": False,
             }
@@ -76,6 +105,7 @@ class OurbitFutures:
         return {
             "exchange": "Ourbit Futures",
             "host": self.base_url,
+            "fallback_hosts": self.base_urls[1:],
             "connection": "not_tested",
             "private_api_key_required_for_public_data": False,
             "trading_enabled": False,
