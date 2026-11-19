@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ARAD QUANT AI PRO</title>
+<title>ARAD QUANT AI PRO · Neural Trading Terminal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 :root{color-scheme:dark;--bg:#070b14;--panel:#101a2a;--panel2:#0c1422;--line:#263b55;--muted:#91a4bd;--cyan:#43d9e8;--green:#38d996;--red:#ff647e;--gold:#f3c66c}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -18%,#1a3858 0,#080e19 52%,#060a12 100%);color:#edf5ff;font:14px Tahoma,Arial,sans-serif}
@@ -128,6 +129,31 @@ main{isolation:isolate}
 @media(max-width:900px){.room-shell{padding:12px 10px 18px;margin:16px 0;border-radius:18px}.room-wall{margin:0 2% 12px;font-size:8px}.room-side{display:none}.room-shell .grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"s1 s2" "s3 s4" "core core" "chart chart" "analysis analysis" "front1 front1" "front2 front2" "plan plan" "front3 front3" "stats stats" "diagnostics diagnostics";gap:13px;padding:7px}.room-shell .grid>.panel{min-height:0;transform:translateZ(12px)!important;box-shadow:0 6px 0 #040b13,0 12px 20px #000a,inset 0 0 0 2px #071522}.room-shell .grid>.panel:nth-child(6),.room-shell .grid>.panel:nth-child(7){min-height:355px}.room-shell .grid>.panel:nth-child(6) .chart{height:270px}.room-floor{margin:12px 2% 0;font-size:8px}}
 @media(max-width:520px){.room-shell{padding:9px 7px 14px}.room-wall{padding:8px;font-size:7px;letter-spacing:.4px}.cockpit-caption{font-size:8px;letter-spacing:.3px;padding:8px}.room-shell .grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"s1" "s2" "s3" "s4" "core" "chart" "analysis" "front1" "front2" "plan" "front3" "stats" "diagnostics";gap:12px}.room-shell .grid>.panel{padding:12px}.room-shell .grid>.panel:nth-child(6),.room-shell .grid>.panel:nth-child(7){min-height:325px}.room-shell .grid>.panel:nth-child(6) .chart{height:245px}.room-floor{font-size:7px;letter-spacing:.3px}}
 
+
+/* Neural-terminal visual redesign inspired by the supplied reference */
+:root{--cyan:#20d9f2;--violet:#9d5cff;--electric:#00aaff}
+body{background:radial-gradient(ellipse at 50% -12%,#123a59 0%,#071321 43%,#02060c 100%);font-family:Inter,Tahoma,Arial,sans-serif}
+.top{padding:12px 16px;border:1px solid #16415c;border-radius:13px;background:linear-gradient(100deg,#071522,#102b40,#071522);box-shadow:0 10px 35px #0008,0 0 24px #04c9f522}
+.brand{font-size:clamp(19px,2.4vw,29px);text-shadow:0 0 22px #00d9ff66}
+.chip{border-color:#23607a;background:#071725;color:#9bdcf0}
+h1{font-size:clamp(23px,3.5vw,36px);text-shadow:0 0 22px #00cfff22}
+.room-shell{border:1px solid #1d6380;background:linear-gradient(180deg,#0b2033,#061321 60%,#030912);box-shadow:0 30px 75px #000c,inset 0 0 35px #0b8ca522}
+.room-wall{background:linear-gradient(90deg,#06121e,#10405a,#06121e);border-color:#23708d;color:#a8e9fa}
+.room-shell .grid>.panel{background:linear-gradient(145deg,#102a40 0%,#081a2c 58%,#06111f 100%);border:1px solid #23708d;border-radius:12px;box-shadow:0 8px 0 #020811,0 17px 30px #000b,0 0 22px #00c9ef1c,inset 0 0 0 2px #071522,inset 0 1px 0 #b8f3ff30}
+.room-shell .grid>.panel:before{background:linear-gradient(90deg,transparent,#12d9ff,#a76bff,transparent);box-shadow:0 0 13px #19dfff}
+.value{color:#e9fbff;text-shadow:0 0 14px #21c9f533}
+.green{color:#20ee8a}.yellow{color:#ffd35a}.red{color:#ff536e}
+.chart{background:linear-gradient(180deg,#04101d,#07192a);border:1px solid #1d6684;box-shadow:inset 0 0 28px #000b,0 0 18px #00d5ff12}
+.metric,.level{background:linear-gradient(145deg,#091a2a,#06111e);border-color:#1d4964}
+.tab.active{background:#06314a;border-color:#16d9f4;color:#8df4ff;box-shadow:0 0 14px #00cfff30}
+.actions button,.select,.tab{border-color:#1c7894;background:linear-gradient(135deg,#0c344b,#0a2033);color:#e6faff}
+.actions #analyzeBtn{background:linear-gradient(135deg,#07513b,#0b302b);border-color:#168b64}
+.neural-visual{position:relative;flex:0 0 min(38%,260px);height:210px;min-width:150px;border:1px solid #1a6488;border-radius:50%;background:radial-gradient(circle,#063a5a 0%,#07172b 52%,transparent 72%);box-shadow:0 0 45px #00cfff35,inset 0 0 35px #00cfff22;overflow:hidden}
+#sphereCanvas{display:block;width:100%;height:100%}
+.neural-label{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:8px;letter-spacing:1.2px;color:#78dff4;text-shadow:0 0 10px #00cfff}
+.room-floor{border-color:#1b5873;color:#61a8c2}
+@media(max-width:520px){.hero{align-items:center;flex-direction:column;text-align:center}.neural-visual{width:100%;height:190px;flex-basis:auto}.hero .bar{width:100%}}
+
 </style></head><body><main>
 <header class="top"><div class="brand">ARAD <em>QUANT</em> AI PRO</div><div class="chip">OURBIT FUTURES · READ ONLY / PAPER MODE</div></header>
 <h1>مرکز هوشمند تحلیل بازار</h1><div class="lead">تشخیص حرکت در ۵ دقیقه · تأیید در ۱۵ دقیقه · زمینه روند در یک ساعت</div>
@@ -138,7 +164,7 @@ main{isolation:isolate}
 <section class="panel span3"><div class="label" id="tickerLabel">قیمت BTC / USDT</div><div class="value" id="btcPrice">—</div><div class="hint" id="btcChange">منتظر داده واقعی بازار</div></section>
 <section class="panel span3"><div class="label">تعداد سیگنال‌های معتبر</div><div class="value" id="signalCount">۰</div><div class="hint">فقط پس از اعتبارسنجی استراتژی</div></section>
 <section class="panel span3"><div class="label">حالت سیستم</div><div class="value green">تحقیقاتی</div><div class="hint">بدون ارسال سفارش به صرافی</div></section>
-<section class="panel span5 hero"><div class="orb"></div><div><div class="label">هسته هوش مصنوعی ARAD</div><div class="value">QUANT CORE</div><div class="hint" id="coreStatus">در انتظار تأیید داده‌های بازار</div><div class="bar"><i id="coreBar"></i></div></div></section>
+<section class="panel span5 hero"><div class="neural-visual" aria-label="نمای سه‌بعدی هسته هوشمند ARAD"><canvas id="sphereCanvas"></canvas><div class="neural-label">NEURAL SHELL · MARKET INTELLIGENCE</div></div><div><div class="label">هسته هوش مصنوعی ARAD</div><div class="value">QUANT CORE</div><div class="hint" id="coreStatus">در انتظار تأیید داده‌های بازار</div><div class="bar"><i id="coreBar"></i></div></div></section>
 <section class="panel span7"><div class="row"><b>نمودار بازار</b><select class="select" id="symbolSelect"><option value="BTC_USDT">BTC / USDT</option><option value="ETH_USDT">ETH / USDT</option><option value="SOL_USDT">SOL / USDT</option></select></div><div class="tabs"><button class="tab active" data-interval="Min5">۵ دقیقه</button><button class="tab" data-interval="Min15">۱۵ دقیقه</button><button class="tab" data-interval="Min60">۱ ساعت</button></div><canvas id="priceChart" class="chart"></canvas><div class="hint" id="chartStatus">نمودار پس از دریافت کندل‌های واقعی نمایش داده می‌شود.</div></section>
 <section class="panel span8"><div class="row"><b>آزمایش زنده تحلیل ۵ ارز</b><span class="chip">BTC · ETH · SOL · DOGE · XRP | 5m / 15m / 1h</span></div><table><thead><tr><th>قرارداد</th><th>جهت</th><th>قیمت / ورود</th><th>امتیاز</th><th>نتیجه تحلیل</th></tr></thead><tbody id="scannerRows"><tr><td colspan="5" class="hint">برای دریافت فهرست کامل قراردادهای فعال، دکمه تحلیل مجدد را بزنید.</td></tr></tbody></table></section>
 <section class="panel span4"><b>قدرت خرید و فروش · دفتر سفارش زنده</b><div class="metrics" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><span class="tag">حجم سفارش خرید</span><b id="bidVolume">—</b></div><div class="metric"><span class="tag">حجم سفارش فروش</span><b id="askVolume">—</b></div></div><div class="row hint" style="margin-top:12px"><span id="buyerShare">خریداران: —</span><span id="sellerShare">فروشندگان: —</span></div><div class="bar"><i id="orderImbalance"></i></div><p class="hint" id="orderBookStatus">در انتظار دفتر سفارش عمومی Ourbit Futures</p><p class="hint" id="tradeFlowStatus">جریان معاملات اخیر هنوز دریافت نشده است.</p></section>
@@ -383,4 +409,40 @@ updatePaperStats();
 document.getElementById('refreshBtn').addEventListener('click',refreshMarket);document.getElementById('analyzeBtn').addEventListener('click',analyzeAgain);
 document.querySelectorAll('[data-interval]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-interval]').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeInterval=b.dataset.interval;refreshMarket()}));
 document.getElementById('symbolSelect').addEventListener('change',refreshMarket);refreshMarket();setInterval(refreshMarket,5000);
-</script></body></html>
+</script>
+<script>
+(function initAradNeuralSphere(){
+ const host=document.querySelector('.neural-visual'),canvas=document.getElementById('sphereCanvas');
+ if(!host||!canvas||!window.THREE)return;
+ let renderer,scene,camera,points,links,raf,resizeObserver;
+ try{
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(48,1,.1,100);
+  camera.position.z=6.2;
+  renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));
+  const count=1450,positions=new Float32Array(count*3),colors=new Float32Array(count*3);
+  for(let i=0;i<count;i++){
+   const phi=Math.acos(1-2*(i+.5)/count),theta=Math.PI*(1+Math.sqrt(5))*i,r=1.55+Math.random()*.08;
+   positions[i*3]=r*Math.sin(phi)*Math.cos(theta);
+   positions[i*3+1]=r*Math.sin(phi)*Math.sin(theta);
+   positions[i*3+2]=r*Math.cos(phi);
+   colors[i*3]=.08+Math.random()*.12;colors[i*3+1]=.55+Math.random()*.35;colors[i*3+2]=.8+Math.random()*.2;
+  }
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(positions,3));geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  points=new THREE.Points(geo,new THREE.PointsMaterial({size:.026,vertexColors:true,transparent:true,opacity:.9,blending:THREE.AdditiveBlending}));
+  scene.add(points);
+  const lp=[];for(let i=0;i<180;i++){const a=Math.floor(Math.random()*count),b=Math.floor(Math.random()*count);lp.push(...positions.slice(a*3,a*3+3),...positions.slice(b*3,b*3+3));}
+  const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));
+  links=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:0x19cfff,transparent:true,opacity:.12}));scene.add(links);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(1.9,.006,5,180),new THREE.MeshBasicMaterial({color:0x9b5cff,transparent:true,opacity:.7}));ring.rotation.x=1.12;scene.add(ring);
+  function resize(){const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  resize();resizeObserver=window.ResizeObserver?new ResizeObserver(resize):null;if(resizeObserver)resizeObserver.observe(host);else window.addEventListener('resize',resize);
+  function animate(){raf=requestAnimationFrame(animate);points.rotation.y+=.0018;points.rotation.x+=.0006;links.rotation.y-=.0012;ring.rotation.z+=.0015;renderer.render(scene,camera);}
+  animate();
+  window.addEventListener('pagehide',()=>{cancelAnimationFrame(raf);if(resizeObserver)resizeObserver.disconnect();renderer.dispose();});
+ }catch(e){host.classList.add('neural-fallback');const label=host.querySelector('.neural-label');if(label)label.textContent='NEURAL CORE · 3D UNAVAILABLE';}
+})();
+</script>
+
+</body></html>
