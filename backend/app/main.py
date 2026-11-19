@@ -37,6 +37,14 @@ async def market_contracts():
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Ourbit Futures contracts unavailable: {str(exc)[:250]}")
 
+@app.get("/api/market/universe")
+async def market_universe():
+    """Discover the complete futures contract list; no top-N symbol cap."""
+    try:
+        return await exchange.market_universe()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Ourbit Futures universe unavailable: {str(exc)[:300]}")
+
 @app.get("/api/market/ticker")
 async def market_ticker(symbol: str | None = Query(default=None)):
     try:
@@ -65,8 +73,25 @@ async def market_candles(
 
 @app.get("/api/signals")
 async def signals():
-    return {
-        "status": "paper_only",
-        "signals": [],
-        "message": "Signal engine remains disabled until live candle data is validated and strategy tests pass."
-    }
+    # Universe discovery is real market coverage, not a trade signal.
+    try:
+        universe = await exchange.market_universe()
+        return {
+            "status": "paper_only",
+            "signals": [],
+            "universe": {
+                "contracts_total": universe["contracts_total"],
+                "active_count": universe["active_count"],
+                "inactive_count": universe["inactive_count"],
+                "unknown_status_count": universe["unknown_status_count"],
+                "tickers_received": universe["tickers_received"],
+            },
+            "message": "All active contracts are discovered. Signal generation remains disabled until candle formats, multi-timeframe rules, and paper-test results are validated.",
+        }
+    except Exception as exc:
+        return {
+            "status": "market_unavailable",
+            "signals": [],
+            "universe": None,
+            "message": f"Could not load the full futures universe: {str(exc)[:250]}",
+        }
