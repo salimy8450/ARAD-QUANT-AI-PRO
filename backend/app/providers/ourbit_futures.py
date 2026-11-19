@@ -133,11 +133,23 @@ class OurbitFutures:
         start_ms: int | None = None,
         end_ms: int | None = None,
     ) -> Any:
-        params: dict[str, Any] = {"interval": interval}
-        if start_ms is not None:
-            params["start"] = start_ms
-        if end_ms is not None:
-            params["end"] = end_ms
+        # Ourbit V1 kline endpoint uses millisecond start/end bounds.
+        # Request enough history for charting and the 30+ closed-bar indicators.
+        interval_minutes = {
+            "Min1": 1, "Min5": 5, "Min15": 15, "Min30": 30,
+            "Min60": 60, "Hour4": 240, "Hour8": 480,
+            "Day1": 1440, "Week1": 10080, "Month1": 43200,
+        }.get(interval)
+        if interval_minutes is None:
+            raise ValueError(f"Unsupported Ourbit kline interval: {interval}")
+        now_ms = int(time.time() * 1000)
+        if end_ms is None:
+            end_ms = now_ms
+        if start_ms is None:
+            start_ms = end_ms - (150 * interval_minutes * 60 * 1000)
+        params: dict[str, Any] = {
+            "interval": interval, "start": start_ms, "end": end_ms
+        }
         return await self._get(f"/api/v1/contract/kline/{symbol}", params)
 
     async def check_connection(self) -> dict[str, Any]:
