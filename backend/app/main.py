@@ -75,12 +75,16 @@ async def market_candles(
 
 
 @app.get("/api/market/scan")
-async def market_scan():
-    """Scan every discovered futures contract on closed 5m candles, then confirm shortlisted setups."""
+async def market_scan(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=40),
+):
+    """Scan a bounded page of the full futures universe to stay within serverless limits."""
     try:
         universe = await exchange.market_universe()
         contracts = universe.get("scan_candidates", [])
-        semaphore = asyncio.Semaphore(6)
+        page = contracts[offset:offset + limit]
+        semaphore = asyncio.Semaphore(4)
         scanned = 0
         errors = 0
 
@@ -98,8 +102,6 @@ async def market_scan():
                     if not f5.get("ready"):
                         return {"symbol": symbol, "status": "insufficient_data",
                                 "label": "داده ۵دقیقه ناکافی", "bars_5m": len(candles5)}
-                    # 5m is the primary detector. Only directional/momentum candidates
-                    # incur the extra 15m and 1h requests, reducing API load.
                     direction = f5.get("direction")
                     preliminary = (direction != "NEUTRAL" and
                                    (f5.get("volume_ratio", 0) >= 1.05 or f5.get("breakout20")))
@@ -117,13 +119,18 @@ async def market_scan():
                     return {"symbol": symbol, "status": "data_error",
                             "label": "خطای دریافت داده", "error": str(exc)[:160]}
 
-        results = await asyncio.gather(*(inspect(x) for x in contracts))
+        results = await asyncio.gather(*(inspect(x) for x in page))
         results.sort(key=lambda x: (x.get("status") == "candidate",
                                     x.get("score", 0)), reverse=True)
         candidates = [x for x in results if x.get("status") == "candidate"]
+        next_offset = offset + len(page)
         return {
             "status": "completed",
             "universe_total": len(contracts),
+            "offset": offset,
+            "limit": limit,
+            "next_offset": next_offset if next_offset < len(contracts) else None,
+            "done": next_offset >= len(contracts),
             "scanned_5m": scanned,
             "candidates": len(candidates),
             "data_errors": errors,
