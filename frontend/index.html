@@ -138,7 +138,8 @@ async function refreshMarket(){
   try{
    const c=await getJson('/api/market/candles?symbol='+encodeURIComponent(symbol)+'&interval='+activeInterval);
    const ok=drawChart(c);updateMarketPanels(c,tickerItem);
-   document.getElementById('chartStatus').textContent=ok?'نمودار کندلی OURBIT · '+candleRows(c).length+' کندل · تازه‌سازی هر ۵ ثانیه · '+symbol+' · '+activeInterval:'پاسخ دریافت شد اما ساختار کندل نیازمند بررسی است';
+   const parsedCount=Number(c.parsed_closed_candles??candleRows(c).length),rawCount=Number(c.raw_rows??candleRows(c).length);
+   document.getElementById('chartStatus').textContent='تشخیص کندل OURBIT · خام: '+rawCount+' ردیف · معتبر و بسته: '+parsedCount+' · '+symbol+' · '+activeInterval+(ok?' · نمودار فعال':' · ساختار کندل نامعتبر');
   }catch(e){
    drawChart([]);document.getElementById('chartStatus').textContent='کندل زنده دریافت نشد: '+e.message+' · داده قبلی به‌عنوان زنده نمایش داده نمی‌شود.';
   }
