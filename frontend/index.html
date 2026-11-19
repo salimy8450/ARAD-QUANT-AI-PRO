@@ -101,6 +101,36 @@ function renderTradePlan(x,symbol){
  document.getElementById('planTP456').textContent=t.slice(3,6).map(fmt).join(' / ');
  document.getElementById('planStatus').textContent='فرصت پژوهشی '+symbol+' · امتیاز '+(x.score??'—')+'/100 · بدون سفارش واقعی.';
 }
+const PAPER_KEY='arad_quant_paper_journal_v1';
+function readPaperJournal(){try{const x=JSON.parse(localStorage.getItem(PAPER_KEY)||'[]');return Array.isArray(x)?x:[]}catch(_){return []}}
+function writePaperJournal(x){try{localStorage.setItem(PAPER_KEY,JSON.stringify(x.slice(-300)))}catch(_){}}
+function updatePaperStats(){
+ const all=readPaperJournal(),closed=all.filter(x=>x.status==='TP1'||x.status==='SL'),wins=closed.filter(x=>x.status==='TP1').length,losses=closed.filter(x=>x.status==='SL').length;
+ document.getElementById('wins').textContent=String(wins);document.getElementById('losses').textContent=String(losses);
+ document.getElementById('winRate').textContent=closed.length?((wins/closed.length)*100).toFixed(1)+'٪':'—';
+ const pnl=closed.reduce((s,x)=>s+Number(x.pnl_pct||0),0);
+ document.getElementById('paperPnL').textContent=closed.length?(pnl>=0?'+':'')+pnl.toFixed(2)+'٪':'—';
+ document.getElementById('statsStatus').textContent='معاملات باز آزمایشی: '+all.filter(x=>x.status==='OPEN').length+' · بسته‌شده: '+closed.length+' · مبنای آمار: لمس TP1 یا SL با قیمت‌های دریافت‌شده در مرورگر همین دستگاه.';
+}
+function addPaperCandidate(x,symbol){
+ if(!x||!x.signal)return;
+ const s=x.signal,key=symbol+'|'+s.direction+'|'+Number(s.entry).toPrecision(12);
+ const all=readPaperJournal();
+ if(all.some(t=>t.key===key))return;
+ all.push({key,symbol,direction:s.direction,entry:Number(s.entry),sl:Number(s.stop_loss),tp1:Number((s.targets||[])[0]),status:'OPEN',created:Date.now(),pnl_pct:0});
+ writePaperJournal(all);updatePaperStats();
+}
+function monitorPaperTrades(symbol,price){
+ price=Number(price);if(!Number.isFinite(price)||price<=0)return;
+ const all=readPaperJournal();let changed=false;
+ for(const t of all){if(t.status!=='OPEN'||t.symbol!==symbol)continue;
+  const hitTP=t.direction==='LONG'?price>=t.tp1:price<=t.tp1;
+  const hitSL=t.direction==='LONG'?price<=t.sl:price>=t.sl;
+  if(hitTP&&hitSL){t.status='AMBIGUOUS';t.closed=Date.now();changed=true;continue;}
+  if(hitTP||hitSL){t.status=hitTP?'TP1':'SL';t.exit=price;t.closed=Date.now();t.pnl_pct=(t.direction==='LONG'?1:-1)*(price-t.entry)/t.entry*100;changed=true;}
+ }
+ if(changed)writePaperJournal(all);updatePaperStats();
+}
 function updateMarketPanels(raw,ticker){
  const candles=candleRows(raw),recent=candles.slice(-30),last=recent[recent.length-1];
  const metrics=document.querySelectorAll('.panel.span6 .metrics .metric b');
@@ -152,6 +182,7 @@ async function refreshMarket(){
    const price=val(tickerItem,['lastPrice','last','price','close','fairPrice','indexPrice']);
    const change=val(tickerItem,['riseFallRate','changeRate','change_rate','priceChangePercent','change24h']);
    document.getElementById('btcPrice').textContent=fmt(price);
+   monitorPaperTrades(symbol,price);
    document.getElementById('btcChange').textContent=change===null?'قیمت لحظه‌ای دریافت شد؛ تغییر ۲۴ساعته در API نبود':'تغییر گزارش‌شده: '+fmt(change);
   }catch(e){
    document.getElementById('btcPrice').textContent='—';
@@ -207,7 +238,9 @@ async function analyzeAgain(){
   const candidates=rows.filter(x=>x.status==='candidate'&&x.signal).length;
   document.getElementById('signalCount').textContent=String(candidates);
   const selected=document.getElementById('symbolSelect').value;
-  renderTradePlan(rows.find(x=>String(x.symbol).toUpperCase()===selected&&x.status==='candidate')||null,selected);
+  const selectedCandidate=rows.find(x=>String(x.symbol).toUpperCase()===selected&&x.status==='candidate')||null;
+  renderTradePlan(selectedCandidate,selected);
+  rows.filter(x=>x.status==='candidate'&&x.signal).forEach(x=>addPaperCandidate(x,x.symbol));
   document.getElementById('analysisStatus').textContent='آزمایش تمام شد: '+analysed+' ارز از '+requested.length+' ارز انتخابی بررسی شد · فرصت احتمالی: '+candidates+' · خطای داده: '+errors+'. '+(missing.length?'نمادهای پیدا‌نشده: '+missing.join(', '):'');
   document.getElementById('coreStatus').textContent='تحلیل واقعی کندل‌های بسته‌شده انجام شد؛ نتایج آزمایشی‌اند و هنوز اعتبارسنجی سودآوری نشده‌اند.';
  }catch(e){
@@ -215,6 +248,7 @@ async function analyzeAgain(){
   body.innerHTML='<tr><td colspan="5" class="hint">تحلیل ناموفق بود: '+e.message+'</td></tr>';
  }finally{b.disabled=false;b.textContent='◎ تحلیل مجدد'}
 }
+updatePaperStats();
 document.getElementById('refreshBtn').addEventListener('click',refreshMarket);document.getElementById('analyzeBtn').addEventListener('click',analyzeAgain);
 document.querySelectorAll('[data-interval]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-interval]').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeInterval=b.dataset.interval;refreshMarket()}));
 document.getElementById('symbolSelect').addEventListener('change',refreshMarket);refreshMarket();setInterval(refreshMarket,5000);
