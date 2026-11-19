@@ -68,8 +68,28 @@ async def market_candles(
         raise HTTPException(status_code=400, detail="start_ms must be earlier than end_ms")
     try:
         data = await exchange.candles(symbol.upper(), interval, start_ms, end_ms)
+        raw_rows = exchange._kline_count(data)
+        parsed_rows = parse_candles(data)
+        sample = None
+        if isinstance(data, dict):
+            node = data
+            for _ in range(6):
+                if isinstance(node, list):
+                    sample = node[0] if node else None
+                    break
+                if not isinstance(node, dict):
+                    break
+                child = next((node[k] for k in ("data", "result", "list", "rows", "items", "klines") if k in node), None)
+                if child is None:
+                    sample = node
+                    break
+                node = child
+        elif isinstance(data, list):
+            sample = data[0] if data else None
         return {"source": "ourbit_futures", "symbol": symbol.upper(),
-                "interval": interval, "data": data}
+                "interval": interval, "raw_rows": raw_rows,
+                "parsed_closed_candles": len(parsed_rows),
+                "first_row_sample": sample, "data": data}
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Ourbit Futures candles unavailable: {str(exc)[:250]}")
 
