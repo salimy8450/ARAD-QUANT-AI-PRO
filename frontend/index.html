@@ -17,7 +17,7 @@ table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:right
 <div class="actions"><button id="refreshBtn">↻ به‌روزرسانی بازار</button><button id="analyzeBtn">◎ تحلیل مجدد</button><span id="updatedAt" class="hint">هنوز به‌روزرسانی نشده</span></div>
 <div class="grid">
 <section class="panel span3"><div class="label">وضعیت اتصال OURBIT</div><div class="value yellow" id="connection">در حال بررسی…</div><div class="hint" id="connectionHint">بررسی API عمومی بازار</div></section>
-<section class="panel span3"><div class="label">قیمت BTC / USDT</div><div class="value" id="btcPrice">—</div><div class="hint" id="btcChange">منتظر داده واقعی بازار</div></section>
+<section class="panel span3"><div class="label" id="tickerLabel">قیمت BTC / USDT</div><div class="value" id="btcPrice">—</div><div class="hint" id="btcChange">منتظر داده واقعی بازار</div></section>
 <section class="panel span3"><div class="label">تعداد سیگنال‌های معتبر</div><div class="value" id="signalCount">۰</div><div class="hint">فقط پس از اعتبارسنجی استراتژی</div></section>
 <section class="panel span3"><div class="label">حالت سیستم</div><div class="value green">تحقیقاتی</div><div class="hint">بدون ارسال سفارش به صرافی</div></section>
 <section class="panel span5 hero"><div class="orb"></div><div><div class="label">هسته هوش مصنوعی ARAD</div><div class="value">QUANT CORE</div><div class="hint" id="coreStatus">در انتظار تأیید داده‌های بازار</div><div class="bar"><i id="coreBar"></i></div></div></section>
@@ -38,16 +38,52 @@ function rowsOf(x){x=unwrap(x);if(Array.isArray(x))return x;if(x&&typeof x==='ob
 function val(o,keys){if(Array.isArray(o))return null;if(!o||typeof o!=='object')return null;for(const k of keys)if(o[k]!==undefined&&o[k]!==null)return o[k];return null}
 function fmt(v){if(v===null||v===undefined||v==='')return '—';const n=Number(v);return Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:8}):String(v)}
 async function getJson(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}
-function drawChart(raw){const canvas=document.getElementById('priceChart'),ctx=canvas.getContext('2d'),dpr=window.devicePixelRatio||1,w=canvas.clientWidth,h=canvas.clientHeight;canvas.width=w*dpr;canvas.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);ctx.strokeStyle='#1e334b';ctx.lineWidth=1;for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(0,h*i/5);ctx.lineTo(w,h*i/5);ctx.stroke()}
- const arr=rowsOf(raw).map(o=>{let close=Array.isArray(o)?o[4]:val(o,['close','c','lastPrice']);let open=Array.isArray(o)?o[1]:val(o,['open','o']);let high=Array.isArray(o)?o[2]:val(o,['high','h']);let low=Array.isArray(o)?o[3]:val(o,['low','l']);return {o:Number(open),h:Number(high),l:Number(low),c:Number(close)}}).filter(x=>Number.isFinite(x.c)&&Number.isFinite(x.o)&&Number.isFinite(x.h)&&Number.isFinite(x.l));
- if(!arr.length){ctx.fillStyle='#91a4bd';ctx.font='12px Tahoma';ctx.textAlign='center';ctx.fillText('داده کندل قابل‌خواندن دریافت نشد',w/2,h/2);return false}
- const lo=Math.min(...arr.map(x=>x.l)),hi=Math.max(...arr.map(x=>x.h)),pad=12,step=(w-pad*2)/arr.length,scale=y=>h-pad-(y-lo)/(hi-lo||1)*(h-pad*2);
- arr.slice(-90).forEach((x,i)=>{const xx=pad+i*step+step/2;ctx.strokeStyle=x.c>=x.o?'#38d996':'#ff647e';ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(xx,scale(x.h));ctx.lineTo(xx,scale(x.l));ctx.stroke();const top=scale(Math.max(x.o,x.c)),bottom=scale(Math.min(x.o,x.c));ctx.fillRect(xx-Math.max(1,step*.28),top,Math.max(2,step*.56),Math.max(1,bottom-top))});
- return true}
-async function refreshMarket(){const b=document.getElementById('refreshBtn');b.disabled=true;b.textContent='در حال دریافت…';const symbol=document.getElementById('symbolSelect').value;let conn=null;
+function candleRows(raw){
+ const source=rowsOf(raw);
+ return source.map(o=>{
+  if(Array.isArray(o)){
+   const n=o.slice(1,5).map(Number);if(n.some(v=>!Number.isFinite(v)))return null;
+   const standard={o:n[0],h:n[1],l:n[2],c:n[3],v:Number(o[5]||0)};
+   const legacy={o:n[0],c:n[1],h:n[2],l:n[3],v:Number(o[5]||0)};
+   const valid=x=>x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)&&x.h>=x.l;
+   return valid(standard)?standard:(valid(legacy)?legacy:null);
+  }
+  const x={o:Number(val(o,['open','o'])),h:Number(val(o,['high','h'])),l:Number(val(o,['low','l'])),c:Number(val(o,['close','c','lastPrice'])),v:Number(val(o,['volume','vol','v'])||0)};
+  return [x.o,x.h,x.l,x.c].every(Number.isFinite)&&x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)?x:null;
+ }).filter(Boolean);
+}
+function drawChart(raw){
+ const canvas=document.getElementById('priceChart'),ctx=canvas.getContext('2d'),dpr=window.devicePixelRatio||1,w=canvas.clientWidth,h=canvas.clientHeight;
+ if(!w||!h)return false;canvas.width=w*dpr;canvas.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ ctx.strokeStyle='#1e334b';ctx.lineWidth=1;for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(0,h*i/5);ctx.lineTo(w,h*i/5);ctx.stroke()}
+ const arr=candleRows(raw);
+ if(!arr.length){ctx.fillStyle='#91a4bd';ctx.font='12px Tahoma';ctx.textAlign='center';ctx.fillText('ساختار کندل از API قابل تشخیص نیست',w/2,h/2);return false}
+ const visible=arr.slice(-90),lo=Math.min(...visible.map(x=>x.l)),hi=Math.max(...visible.map(x=>x.h)),pad=12,step=(w-pad*2)/visible.length,scale=y=>h-pad-(y-lo)/(hi-lo||1)*(h-pad*2);
+ visible.forEach((x,i)=>{const xx=pad+i*step+step/2;ctx.strokeStyle=x.c>=x.o?'#38d996':'#ff647e';ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(xx,scale(x.h));ctx.lineTo(xx,scale(x.l));ctx.stroke();const top=scale(Math.max(x.o,x.c)),bottom=scale(Math.min(x.o,x.c));ctx.fillRect(xx-Math.max(1,step*.28),top,Math.max(2,step*.56),Math.max(1,bottom-top))});
+ return true;
+}
+function updateMarketPanels(raw,ticker){
+ const candles=candleRows(raw),recent=candles.slice(-30),last=recent[recent.length-1];
+ const metrics=document.querySelectorAll('.panel.span6 .metrics .metric b');
+ if(recent.length&&metrics.length>=4){
+  metrics[0].textContent=fmt(Math.min(...recent.map(x=>x.l)));
+  metrics[1].textContent=fmt(Math.max(...recent.map(x=>x.h)));
+  metrics[2].textContent=fmt(Math.max(...recent.map(x=>x.v)));
+  metrics[3].textContent=fmt(Math.min(...recent.map(x=>x.v)));
+  const labels=document.querySelectorAll('.panel.span6 .metrics .tag');
+  if(labels.length>=4){labels[0].textContent='کف ۳۰ کندل';labels[1].textContent='سقف ۳۰ کندل';labels[2].textContent='بیشترین حجم کندل';labels[3].textContent='کمترین حجم کندل'}
+ }
+ const book=document.querySelector('.panel.span4 .placeholder');
+ if(book){
+  const bid=Number(val(ticker,['bid','bidPrice'])||0),ask=Number(val(ticker,['ask','askPrice'])||0),spread=bid>0&&ask>0?((ask-bid)/((ask+bid)/2)*100):null;
+  book.textContent=spread===null?'قیمت خرید/فروش در پاسخ API موجود نیست؛ نسبت خریداران و فروشندگان بدون داده دفتر سفارش محاسبه نمی‌شود.':'فاصله قیمت خرید تا فروش: '+spread.toFixed(4)+'٪ · حجم ۳۰ کندل اخیر: '+fmt(recent.reduce((s,x)=>s+x.v,0))+' · نسبت خریدار/فروشنده نیازمند داده عمق سفارش است.';
+ }
+}
+
+async function refreshMarket(){const b=document.getElementById('refreshBtn');b.disabled=true;b.textContent='در حال دریافت…';const symbol=document.getElementById('symbolSelect').value;document.getElementById('tickerLabel').textContent='قیمت '+symbol.replace('_',' / ');let conn=null;
  try{conn=await getJson('/api/market/connection');const ok=!!conn.connected;document.getElementById('connection').textContent=ok?'متصل':'عدم اتصال';document.getElementById('connection').className='value '+(ok?'green':'yellow');document.getElementById('connectionHint').textContent=ok?'پاسخ API دریافت شد · '+fmt(conn.latency_ms)+' ms':'داده عمومی در دسترس نیست · '+(conn.error||'اتصال بررسی شود');document.getElementById('coreStatus').textContent=ok?'API در دسترس است؛ اعتبارسنجی کندل‌ها لازم است':'داده تأییدشده بازار موجود نیست';document.getElementById('coreBar').style.width=ok?'25%':'0%';document.getElementById('diagnostics').textContent='Backend online · '+(conn.host||'Ourbit Futures')+' · '+(ok?'Ping successful':'Ping failed')+' · Read only';}catch(e){document.getElementById('connection').textContent='Backend offline';document.getElementById('diagnostics').textContent='خطا در ارتباط با backend: '+e.message}
- try{const t=await getJson('/api/market/ticker?symbol='+encodeURIComponent(symbol));const list=rowsOf(t);const item=list[0]||{};const price=val(item,['lastPrice','last','price','close','fairPrice','indexPrice']);const change=val(item,['riseFallRate','changeRate','priceChangePercent','change24h']);document.getElementById('btcPrice').textContent=fmt(price);document.getElementById('btcChange').textContent=change===null?'تغییر ۲۴ ساعته در پاسخ API موجود نبود':'تغییر گزارش‌شده: '+fmt(change)}catch(e){document.getElementById('btcPrice').textContent='—';document.getElementById('btcChange').textContent='دریافت قیمت ناموفق: '+e.message}
- try{const c=await getJson('/api/market/candles?symbol='+encodeURIComponent(symbol)+'&interval='+activeInterval);const ok=drawChart(c);document.getElementById('chartStatus').textContent=ok?'کندل‌های دریافتی از API · '+activeInterval:'پاسخ دریافت شد اما ساختار کندل نیازمند بررسی است'}catch(e){drawChart([]);document.getElementById('chartStatus').textContent='کندل دریافت نشد: '+e.message}
+ try{const t=await getJson('/api/market/ticker?symbol='+encodeURIComponent(symbol));const list=rowsOf(t);const item=list.find(x=>String(val(x,['symbol'])||'').toUpperCase()===symbol)||list[0]||{};const price=val(item,['lastPrice','last','price','close','fairPrice','indexPrice']);const change=val(item,['riseFallRate','changeRate','change_rate','priceChangePercent','change24h']);document.getElementById('btcPrice').textContent=fmt(price);document.getElementById('btcChange').textContent=change===null?'تغییر ۲۴ ساعته در پاسخ API موجود نبود':'تغییر گزارش‌شده: '+fmt(change)}catch(e){document.getElementById('btcPrice').textContent='—';document.getElementById('btcChange').textContent='دریافت قیمت ناموفق: '+e.message}
+ try{const c=await getJson('/api/market/candles?symbol='+encodeURIComponent(symbol)+'&interval='+activeInterval);const ok=drawChart(c);updateMarketPanels(c,typeof item==='undefined'?{}:item);document.getElementById('chartStatus').textContent=ok?'نمودار کندلی واقعی · '+symbol+' · '+activeInterval:'پاسخ دریافت شد اما ساختار کندل نیازمند بررسی است'}catch(e){drawChart([]);document.getElementById('chartStatus').textContent='کندل دریافت نشد: '+e.message}
  document.getElementById('updatedAt').textContent='آخرین بررسی: '+new Date().toLocaleTimeString();b.disabled=false;b.textContent='↻ به‌روزرسانی بازار'}
 async function analyzeAgain(){const b=document.getElementById('analyzeBtn');b.disabled=true;b.textContent='در حال تحلیل همه ارزها…';const body=document.getElementById('scannerRows');body.innerHTML='';let all=[],done=0,candidates=0,errors=0;try{const u=await getJson('/api/market/universe');const symbols=(u.scan_candidates||u.active_contracts||[]).map(x=>x.symbol).filter(Boolean);if(!symbols.length)throw new Error('فهرست نمادها خالی است');const pageSize=20;for(let i=0;i<symbols.length;i+=pageSize){const batch=symbols.slice(i,i+pageSize);const url='/api/market/scan?symbols='+encodeURIComponent(batch.join(','));const s=await getJson(url);const rows=s.results||[];all.push(...rows);done+=s.scanned_5m||0;candidates+=s.candidates||0;errors+=s.data_errors||0;document.getElementById('analysisStatus').textContent='در حال اسکن: '+done+' از '+symbols.length+' قرارداد · فرصت احتمالی: '+candidates+' · خطای داده: '+errors;const frag=document.createDocumentFragment();rows.forEach(x=>{const f=x.five_min||{};const sig=x.signal||{};const cells=[x.symbol||'—',sig.direction||f.direction||'—',sig.entry?fmt(sig.entry):fmt(f.close),x.score!==undefined?String(x.score)+'/100':(f.volume_ratio!==undefined?fmt(f.volume_ratio)+'x حجم':'—'),(x.label||x.status||'—')+(sig.stop_loss?' | SL '+fmt(sig.stop_loss)+' | TP1–TP6 '+(sig.targets||[]).map(fmt).join(' / '):'')];const tr=document.createElement('tr');cells.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});frag.appendChild(tr)});body.appendChild(frag)}document.getElementById('signalCount').textContent=String(candidates);document.getElementById('analysisStatus').textContent='اسکن کامل شد: '+done+' از '+symbols.length+' قرارداد بررسی شد · فرصت احتمالی: '+candidates+' · خطای داده: '+errors+' · تایم‌فریم اصلی ۵ دقیقه، تأیید ۱۵ دقیقه و زمینه ۱ ساعت. '+(all.length?'نتایج در جدول ثبت شد.':'');document.getElementById('coreStatus').textContent='پایان اسکن همه قراردادهای دریافت‌شده؛ نتایج آزمایشی'}catch(e){document.getElementById('analysisStatus').textContent='اسکن کامل نشد: '+e.message+'؛ در صورت بروز خطا دوباره تلاش کن.';if(!body.children.length)body.innerHTML='<tr><td colspan="5" class="hint">اسکن ناموفق بود؛ اتصال API را بررسی کنید.</td></tr>'}finally{b.disabled=false;b.textContent='◎ تحلیل مجدد'}}
 document.getElementById('refreshBtn').addEventListener('click',refreshMarket);document.getElementById('analyzeBtn').addEventListener('click',analyzeAgain);
