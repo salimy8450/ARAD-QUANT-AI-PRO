@@ -32,7 +32,12 @@ def parse_candles(payload: Any) -> list[dict[str, float]]:
         try:
             if isinstance(row, (list, tuple)) and len(row) >= 5:
                 # Ourbit contract kline arrays follow timestamp, O, H, L, C, V.
-                t, o, h, l, c = row[:5]
+                t, o, h, l, close_value = row[:5]
+                # Some legacy Ourbit market feeds order OHLC as O,C,H,L.
+                # Detect that variant by OHLC range consistency.
+                if h < max(o, close_value) or l > min(o, close_value) or h < l:
+                    close_value, h, l = h, l, close_value
+                c = close_value
                 v = row[5] if len(row) > 5 else 0
             elif isinstance(row, dict):
                 t = row.get("time", row.get("timestamp", row.get("t", 0)))
