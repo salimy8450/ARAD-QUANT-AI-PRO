@@ -38,25 +38,24 @@ h1{letter-spacing:.2px;text-shadow:0 4px 24px #43d9e822}
 .grid>.panel:nth-child(5){grid-area:core}
 .grid>.panel:nth-child(6){grid-area:chart;min-height:470px;transform:translateZ(25px) rotateY(1deg)}
 .grid>.panel:nth-child(7){grid-area:analysis;min-height:470px;transform:translateZ(18px) rotateY(-1deg)}
-.grid>.panel:nth-child(8){grid-area:analysis;display:none}
-.grid>.panel:nth-child(9){grid-area:front1;min-height:210px;transform:translateZ(30px) rotateY(2deg)}
-.grid>.panel:nth-child(10){grid-area:front2;min-height:210px;transform:translateZ(34px)}
-.grid>.panel:nth-child(11){grid-area:plan;min-height:270px}
-.grid>.panel:nth-child(12){grid-area:front3;min-height:210px;display:none}
-.grid>.panel:nth-child(13){grid-area:stats}
-.grid>.panel:nth-child(14){grid-area:diagnostics}
+.grid>.panel:nth-child(8){grid-area:front1;min-height:210px;transform:translateZ(30px) rotateY(2deg)}
+.grid>.panel:nth-child(9){grid-area:front2;min-height:210px;transform:translateZ(34px)}
+.grid>.panel:nth-child(10){grid-area:plan;min-height:270px;transform:translateZ(22px) rotateY(-1deg)}
+.grid>.panel:nth-child(11){grid-area:front3;min-height:210px;transform:translateZ(32px)}
+.grid>.panel:nth-child(12){grid-area:stats}
+.grid>.panel:nth-child(13){grid-area:diagnostics}
 .chart{height:340px;border:1px solid #31516d;box-shadow:inset 0 0 30px #020811,0 0 22px #36d9ef12;background:linear-gradient(180deg,#071322,#091827)}
 .grid>.panel:nth-child(6) .row b,.grid>.panel:nth-child(7) .row b{font-size:17px;letter-spacing:.4px}
 .grid>.panel:nth-child(6):before{height:3px}
 .grid>.panel:nth-child(7):before{height:3px}
-.grid>.panel:nth-child(9),.grid>.panel:nth-child(10){background:linear-gradient(145deg,#132b3d,#0a1928);border-color:#39718a}
-.grid>.panel:nth-child(9) .metric,.grid>.panel:nth-child(10) .metric{background:#081421;border-color:#25465c}
-.grid>.panel:nth-child(11) .level{background:linear-gradient(145deg,#102238,#091421);border-color:#31516b}
+.grid>.panel:nth-child(8),.grid>.panel:nth-child(9),.grid>.panel:nth-child(11){background:linear-gradient(145deg,#132b3d,#0a1928);border-color:#39718a}
+.grid>.panel:nth-child(8) .metric,.grid>.panel:nth-child(9) .metric,.grid>.panel:nth-child(11) .metric{background:#081421;border-color:#25465c}
+.grid>.panel:nth-child(10) .level{background:linear-gradient(145deg,#102238,#091421);border-color:#31516b}
 .actions button,.select,.tab{box-shadow:0 5px 14px #0005}
 .orb{box-shadow:0 0 42px #32d9ed88,inset 0 0 22px #d4ffff55,0 16px 28px #0008}
 .cockpit-caption{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#7eabc1;font-size:10px;letter-spacing:1.3px;margin:0 0 10px}
 .cockpit-caption:after{content:"LIVE MARKET TERMINAL";color:#43d9e8}
-@media(max-width:900px){main{padding:14px}.grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"core" "chart" "analysis" "front1" "front2" "plan" "front3" "stats" "diagnostics";gap:15px}.grid>.panel{transform:none!important;min-height:0}.grid>.panel:nth-child(1),.grid>.panel:nth-child(2),.grid>.panel:nth-child(3),.grid>.panel:nth-child(4),.grid>.panel:nth-child(8),.grid>.panel:nth-child(12){display:none}.chart{height:290px}}
+@media(max-width:900px){main{padding:14px}.grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"core" "chart" "analysis" "front1" "front2" "plan" "front3" "stats" "diagnostics";gap:15px}.grid>.panel{transform:none!important;min-height:0}.grid>.panel:nth-child(1),.grid>.panel:nth-child(2),.grid>.panel:nth-child(3),.grid>.panel:nth-child(4){display:none}.chart{height:290px}}
 
 @media(max-width:850px){main{padding:12px}.span3,.span4,.span5,.span6,.span7,.span8{grid-column:span 6}.span12{grid-column:span 12}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.span3,.span4,.span5,.span6,.span7,.span8,.span12{grid-column:span 12}.hero{gap:13px}.orb{flex-basis:82px;height:82px}.value{font-size:20px}.levels{grid-template-columns:repeat(2,minmax(0,1fr))}}
