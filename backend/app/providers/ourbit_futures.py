@@ -16,7 +16,7 @@ class OurbitFutures:
         # The contract Postman collection documents contract.ourbit.com.
         # futures.ourbit.com is a secondary candidate; it is not assumed live
         # until a real ping succeeds from this deployment.
-        candidates = [configured, "https://futures.ourbit.com"]
+        candidates = [configured, "https://contract.ourbit.com", "https://futures.ourbit.com"]
         self.base_urls = list(dict.fromkeys(url for url in candidates if url))
         self.base_url = self.base_urls[0] if self.base_urls else ""
         self.timeout = float(os.getenv("OURBIT_HTTP_TIMEOUT", "10"))
