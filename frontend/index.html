@@ -43,10 +43,12 @@ function candleRows(raw){
  return source.map(o=>{
   if(Array.isArray(o)){
    const n=o.slice(1,5).map(Number);if(n.some(v=>!Number.isFinite(v)))return null;
-   const standard={o:n[0],h:n[1],l:n[2],c:n[3],v:Number(o[5]||0)};
    const legacy={o:n[0],c:n[1],h:n[2],l:n[3],v:Number(o[5]||0)};
-   const valid=x=>x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)&&x.h>=x.l;
-   return valid(standard)?standard:(valid(legacy)?legacy:null);
+   const standard={o:n[0],h:n[1],l:n[2],c:n[3],v:Number(o[5]||0)};
+   const valid=x=>Number.isFinite(x.v)&&x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)&&x.h>=x.l&&x.l>0;
+   // Ourbit Futures V1 array order is [time, open, close, high, low, volume].
+   // Prefer this documented order; the alternate OHLC order is only fallback.
+   return valid(legacy)?legacy:(valid(standard)?standard:null);
   }
   const x={o:Number(val(o,['open','o'])),h:Number(val(o,['high','h'])),l:Number(val(o,['low','l'])),c:Number(val(o,['close','c','lastPrice'])),v:Number(val(o,['volume','vol','v'])||0)};
   return [x.o,x.h,x.l,x.c].every(Number.isFinite)&&x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)?x:null;
@@ -58,8 +60,23 @@ function drawChart(raw){
  ctx.strokeStyle='#1e334b';ctx.lineWidth=1;for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(0,h*i/5);ctx.lineTo(w,h*i/5);ctx.stroke()}
  const arr=candleRows(raw);
  if(!arr.length){ctx.fillStyle='#91a4bd';ctx.font='12px Tahoma';ctx.textAlign='center';ctx.fillText('ساختار کندل از API قابل تشخیص نیست',w/2,h/2);return false}
- const visible=arr.slice(-90),lo=Math.min(...visible.map(x=>x.l)),hi=Math.max(...visible.map(x=>x.h)),pad=12,step=(w-pad*2)/visible.length,scale=y=>h-pad-(y-lo)/(hi-lo||1)*(h-pad*2);
- visible.forEach((x,i)=>{const xx=pad+i*step+step/2;ctx.strokeStyle=x.c>=x.o?'#38d996':'#ff647e';ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(xx,scale(x.h));ctx.lineTo(xx,scale(x.l));ctx.stroke();const top=scale(Math.max(x.o,x.c)),bottom=scale(Math.min(x.o,x.c));ctx.fillRect(xx-Math.max(1,step*.28),top,Math.max(2,step*.56),Math.max(1,bottom-top))});
+ const visible=arr.slice(-90);
+ const rawLo=Math.min(...visible.map(x=>x.l)),rawHi=Math.max(...visible.map(x=>x.h));
+ const mid=(rawLo+rawHi)/2,minimumRange=Math.max(mid*0.001,0.00000001);
+ const range=Math.max(rawHi-rawLo,minimumRange),lo=mid-range/2,hi=mid+range/2;
+ const pad=18,step=(w-pad*2)/visible.length,scale=y=>h-pad-(y-lo)/(hi-lo)*(h-pad*2);
+ visible.forEach((x,i)=>{
+  const xx=pad+i*step+step/2,color=x.c>=x.o?'#38d996':'#ff647e';
+  ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(xx,scale(x.h));ctx.lineTo(xx,scale(x.l));ctx.stroke();
+  const top=scale(Math.max(x.o,x.c)),bottom=scale(Math.min(x.o,x.c));
+  const bodyH=Math.max(2,Math.abs(bottom-top));
+  ctx.fillRect(xx-Math.max(2,step*.34),Math.min(top,bottom),Math.max(3,step*.68),bodyH);
+ });
+ // Last traded close reference line
+ const last=visible[visible.length-1];
+ ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle='#e8f2ff88';ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(pad,scale(last.c));ctx.lineTo(w-pad,scale(last.c));ctx.stroke();ctx.restore();
  return true;
 }
 function updateMarketPanels(raw,ticker){
@@ -121,7 +138,7 @@ async function refreshMarket(){
   try{
    const c=await getJson('/api/market/candles?symbol='+encodeURIComponent(symbol)+'&interval='+activeInterval);
    const ok=drawChart(c);updateMarketPanels(c,tickerItem);
-   document.getElementById('chartStatus').textContent=ok?'نمودار زنده OURBIT · به‌روزرسانی خودکار هر ۵ ثانیه · '+symbol+' · '+activeInterval:'پاسخ دریافت شد اما ساختار کندل نیازمند بررسی است';
+   document.getElementById('chartStatus').textContent=ok?'نمودار کندلی OURBIT · '+candleRows(c).length+' کندل · تازه‌سازی هر ۵ ثانیه · '+symbol+' · '+activeInterval:'پاسخ دریافت شد اما ساختار کندل نیازمند بررسی است';
   }catch(e){
    drawChart([]);document.getElementById('chartStatus').textContent='کندل زنده دریافت نشد: '+e.message+' · داده قبلی به‌عنوان زنده نمایش داده نمی‌شود.';
   }
