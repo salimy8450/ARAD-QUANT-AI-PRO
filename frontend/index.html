@@ -94,11 +94,45 @@ main{isolation:isolate}
  .cockpit-caption:after{content:"COCKPIT MODE"}
 }
 
+
+/* Structural cockpit rebuild: wall, monitor bezels, side consoles and floor */
+.room-shell{position:relative;isolation:isolate;margin:22px 0 30px;padding:20px 22px 26px;border:1px solid #28516a;border-radius:28px;overflow:hidden;background:linear-gradient(180deg,#10283a 0%,#0a1928 38%,#07111e 70%,#050b13 100%);box-shadow:0 32px 75px #000c,inset 0 1px 0 #b9f4ff24;perspective:1800px}
+.room-shell:before{content:"";position:absolute;z-index:-2;inset:0 0 25%;background:radial-gradient(ellipse at 50% 0%,#23627a66,transparent 65%),linear-gradient(180deg,#102c40,#091725 75%);clip-path:polygon(5% 0,95% 0,100% 100%,0 100%)}
+.room-shell:after{content:"";position:absolute;z-index:-1;left:-8%;right:-8%;bottom:-8%;height:36%;background:repeating-linear-gradient(90deg,transparent 0 95px,#2b789022 96px 98px),repeating-linear-gradient(0deg,#0a1b2b 0 32px,#1c4055 33px 34px);transform:perspective(450px) rotateX(57deg);transform-origin:top center;opacity:.8}
+.room-wall{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 15px;margin:0 5% 16px;border:1px solid #39718a;border-radius:8px;background:linear-gradient(90deg,#071522,#164057,#071522);color:#8ed9e8;font-size:10px;letter-spacing:1.4px;box-shadow:0 8px 20px #0008,inset 0 0 16px #43d9e822}
+.room-side{position:absolute;top:105px;bottom:75px;width:13px;border:1px solid #39718a;background:linear-gradient(90deg,#06101b,#24516a,#091522);box-shadow:0 0 22px #35cbe522}
+.room-side-left{left:7px;transform:skewY(5deg)}.room-side-right{right:7px;transform:skewY(-5deg)}
+.cockpit-caption{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 14px;margin:0 2% 14px;border:1px solid #2d6680;border-radius:8px;background:linear-gradient(90deg,#081522,#12394d,#081522);color:#8fc9da;font-size:10px;letter-spacing:1px;box-shadow:0 7px 18px #0008}
+.cockpit-caption:after{content:"SYSTEM ONLINE";color:#38d996}
+.room-shell .grid{direction:ltr;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-areas:"s1 s2 s3 s4" "core core core core" "chart chart analysis analysis" "chart chart analysis analysis" "front1 front1 front2 front2" "front3 plan plan plan" "stats stats diagnostics diagnostics";gap:17px;padding:15px;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;transform-style:preserve-3d;align-items:stretch}
+.room-shell .grid>.panel{direction:rtl;grid-column:auto!important;position:relative;min-width:0;overflow:hidden;border:2px solid #3b7893;border-radius:13px;background:linear-gradient(145deg,#18364e 0%,#0b1c2d 58%,#071320 100%);box-shadow:0 9px 0 #040b13,0 17px 27px #000b,0 0 20px #28c9e51c,inset 0 0 0 3px #071522,inset 0 1px 0 #c8f5ff3b;transform:translateZ(18px)}
+.room-shell .grid>.panel:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,transparent,#43d9e8,#b2fff1,transparent);box-shadow:0 0 13px #43d9e8;z-index:1}
+.room-shell .grid>.panel:after{content:"";position:absolute;left:12%;right:12%;bottom:-8px;height:9px;border-radius:50%;background:#38d9ef55;filter:blur(12px);pointer-events:none}
+.room-shell .grid>.panel>*{position:relative;z-index:2}
+.room-shell .grid>.panel:nth-child(1){grid-area:s1;display:block}
+.room-shell .grid>.panel:nth-child(2){grid-area:s2;display:block}
+.room-shell .grid>.panel:nth-child(3){grid-area:s3;display:block}
+.room-shell .grid>.panel:nth-child(4){grid-area:s4;display:block}
+.room-shell .grid>.panel:nth-child(5){grid-area:core;min-height:155px;transform:translateZ(26px)}
+.room-shell .grid>.panel:nth-child(6){grid-area:chart;min-height:525px;transform:translateZ(42px) rotateY(1.2deg);border-color:#58a4bb}
+.room-shell .grid>.panel:nth-child(7){grid-area:analysis;min-height:525px;transform:translateZ(34px) rotateY(-1.2deg);border-color:#58a4bb}
+.room-shell .grid>.panel:nth-child(8){grid-area:front1;min-height:210px;transform:translateZ(35px)}
+.room-shell .grid>.panel:nth-child(9){grid-area:front2;min-height:210px;transform:translateZ(32px)}
+.room-shell .grid>.panel:nth-child(10){grid-area:plan;min-height:245px;transform:translateZ(28px)}
+.room-shell .grid>.panel:nth-child(11){grid-area:front3;min-height:210px;transform:translateZ(36px)}
+.room-shell .grid>.panel:nth-child(12){grid-area:stats;min-height:190px;transform:translateZ(20px)}
+.room-shell .grid>.panel:nth-child(13){grid-area:diagnostics;min-height:190px;transform:translateZ(18px)}
+.room-shell .grid>.panel:nth-child(6) .chart{height:355px}
+.room-shell .grid>.panel:nth-child(7){background:linear-gradient(145deg,#18374e,#0a1929)}
+.room-floor{display:flex;justify-content:space-between;gap:10px;margin:16px 5% 0;padding:8px 14px;border-top:1px solid #35627a;color:#6799ae;font-size:9px;letter-spacing:1.2px}
+@media(max-width:900px){.room-shell{padding:12px 10px 18px;margin:16px 0;border-radius:18px}.room-wall{margin:0 2% 12px;font-size:8px}.room-side{display:none}.room-shell .grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"s1 s2" "s3 s4" "core core" "chart chart" "analysis analysis" "front1 front1" "front2 front2" "plan plan" "front3 front3" "stats stats" "diagnostics diagnostics";gap:13px;padding:7px}.room-shell .grid>.panel{min-height:0;transform:translateZ(12px)!important;box-shadow:0 6px 0 #040b13,0 12px 20px #000a,inset 0 0 0 2px #071522}.room-shell .grid>.panel:nth-child(6),.room-shell .grid>.panel:nth-child(7){min-height:355px}.room-shell .grid>.panel:nth-child(6) .chart{height:270px}.room-floor{margin:12px 2% 0;font-size:8px}}
+@media(max-width:520px){.room-shell{padding:9px 7px 14px}.room-wall{padding:8px;font-size:7px;letter-spacing:.4px}.cockpit-caption{font-size:8px;letter-spacing:.3px;padding:8px}.room-shell .grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"s1" "s2" "s3" "s4" "core" "chart" "analysis" "front1" "front2" "plan" "front3" "stats" "diagnostics";gap:12px}.room-shell .grid>.panel{padding:12px}.room-shell .grid>.panel:nth-child(6),.room-shell .grid>.panel:nth-child(7){min-height:325px}.room-shell .grid>.panel:nth-child(6) .chart{height:245px}.room-floor{font-size:7px;letter-spacing:.3px}}
+
 </style></head><body><main>
 <header class="top"><div class="brand">ARAD <em>QUANT</em> AI PRO</div><div class="chip">OURBIT FUTURES · READ ONLY / PAPER MODE</div></header>
 <h1>مرکز هوشمند تحلیل بازار</h1><div class="lead">تشخیص حرکت در ۵ دقیقه · تأیید در ۱۵ دقیقه · زمینه روند در یک ساعت</div>
 <div class="actions"><button id="refreshBtn">↻ به‌روزرسانی بازار</button><button id="analyzeBtn">◎ تحلیل مجدد</button><span id="updatedAt" class="hint">هنوز به‌روزرسانی نشده</span></div>
-<div class="cockpit-caption"><span>ARAD IMMERSIVE TRADING COCKPIT · THREE-SCREEN VIEW</span><span>OURBIT FUTURES · READ ONLY</span></div>
+<section class="room-shell"><div class="room-wall"><span>ARAD QUANT COMMAND CENTER</span><span>OURBIT FUTURES · LIVE DATA</span></div><div class="room-side room-side-left"></div><div class="room-side room-side-right"></div><div class="cockpit-caption"><span>MAIN DISPLAY WALL · MARKET INTELLIGENCE</span><span>READ ONLY / PAPER MODE</span></div>
 <div class="grid">
 <section class="panel span3"><div class="label">وضعیت اتصال OURBIT</div><div class="value yellow" id="connection">در حال بررسی…</div><div class="hint" id="connectionHint">بررسی API عمومی بازار</div></section>
 <section class="panel span3"><div class="label" id="tickerLabel">قیمت BTC / USDT</div><div class="value" id="btcPrice">—</div><div class="hint" id="btcChange">منتظر داده واقعی بازار</div></section>
@@ -114,6 +148,7 @@ main{isolation:isolate}
 <section class="panel span4"><b>آمار عملکرد سیگنال‌ها</b><div class="metrics" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><span class="tag">نرخ برد</span><b>—</b></div><div class="metric"><span class="tag">بردها</span><b>۰</b></div><div class="metric"><span class="tag">باخت‌ها</span><b>۰</b></div><div class="metric"><span class="tag">سود / زیان</span><b>—</b></div></div><p class="hint">آمار تا زمان ثبت و ارزیابی معاملات آزمایشی خالی می‌ماند.</p></section>
 <section class="panel span8"><b>گزارش سیستم و تشخیص خطا</b><p class="hint" id="diagnostics">وضعیت backend هنوز بررسی نشده است.</p><p class="hint" id="analysisStatus">موتور سیگنال تا زمان اعتبارسنجی داده‌های زنده و آزمون استراتژی غیرفعال است.</p></section>
 </div>
+<div class="room-floor"><span>ARAD QUANT AI PRO</span><span>SIMULATION FLOOR · NO LIVE ORDERS</span></div></section>
 <footer>حالت تحقیقاتی و آزمایشی؛ بدون تضمین سود و بدون اجرای سفارش. پیش از استفاده مالی، داده تاریخی، کارمزد، لغزش قیمت و عملکرد آزمایشی باید بررسی شوند. کلید خصوصی صرافی را در این صفحه یا GitHub وارد نکنید.</footer>
 </main>
 <script>
