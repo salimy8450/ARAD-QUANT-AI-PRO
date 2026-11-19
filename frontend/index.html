@@ -116,7 +116,7 @@ function addPaperCandidate(x,symbol){
  if(!x||!x.signal)return;
  const s=x.signal,key=symbol+'|'+s.direction+'|'+Number(s.entry).toPrecision(12);
  const all=readPaperJournal();
- if(all.some(t=>t.key===key))return;
+ if(all.some(t=>t.key===key|| (t.symbol===symbol&&t.direction===s.direction&&t.status==='OPEN')))return;
  all.push({key,symbol,direction:s.direction,entry:Number(s.entry),sl:Number(s.stop_loss),tp1:Number((s.targets||[])[0]),status:'OPEN',created:Date.now(),pnl_pct:0});
  writePaperJournal(all);updatePaperStats();
 }
