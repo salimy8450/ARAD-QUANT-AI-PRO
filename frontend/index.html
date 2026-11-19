@@ -80,13 +80,58 @@ function updateMarketPanels(raw,ticker){
  }
 }
 
-async function refreshMarket(){const b=document.getElementById('refreshBtn');b.disabled=true;b.textContent='در حال دریافت…';const symbol=document.getElementById('symbolSelect').value;document.getElementById('tickerLabel').textContent='قیمت '+symbol.replace('_',' / ');let conn=null,tickerItem={};
- try{conn=await getJson('/api/market/connection');const ok=!!conn.connected;document.getElementById('connection').textContent=ok?'متصل':'عدم اتصال';document.getElementById('connection').className='value '+(ok?'green':'yellow');document.getElementById('connectionHint').textContent=ok?'پاسخ API دریافت شد · '+fmt(conn.latency_ms)+' ms':'داده عمومی در دسترس نیست · '+(conn.error||'اتصال بررسی شود');document.getElementById('coreStatus').textContent=ok?'API در دسترس است؛ اعتبارسنجی کندل‌ها لازم است':'داده تأییدشده بازار موجود نیست';document.getElementById('coreBar').style.width=ok?'25%':'0%';document.getElementById('diagnostics').textContent='Backend online · '+(conn.host||'Ourbit Futures')+' · '+(ok?'Ping successful':'Ping failed')+' · Read only';}catch(e){document.getElementById('connection').textContent='Backend offline';document.getElementById('diagnostics').textContent='خطا در ارتباط با backend: '+e.message}
- try{const t=await getJson('/api/market/ticker?symbol='+encodeURIComponent(symbol));const list=rowsOf(t);tickerItem=list.find(x=>String(val(x,['symbol'])||'').toUpperCase()===symbol)||list[0]||{};const price=val(tickerItem,['lastPrice','last','price','close','fairPrice','indexPrice']);const change=val(tickerItem,['riseFallRate','changeRate','change_rate','priceChangePercent','change24h']);document.getElementById('btcPrice').textContent=fmt(price);document.getElementById('btcChange').textContent=change===null?'تغییر ۲۴ ساعته در پاسخ API موجود نبود':'تغییر گزارش‌شده: '+fmt(change)}catch(e){document.getElementById('btcPrice').textContent='—';document.getElementById('btcChange').textContent='دریافت قیمت ناموفق: '+e.message}
- try{const c=await getJson('/api/market/candles?symbol='+encodeURIComponent(symbol)+'&interval='+activeInterval);const ok=drawChart(c);updateMarketPanels(c,tickerItem);document.getElementById('chartStatus').textContent=ok?'نمودار کندلی واقعی · '+symbol+' · '+activeInterval:'پاسخ دریافت شد اما ساختار کندل نیازمند بررسی است'}catch(e){drawChart([]);document.getElementById('chartStatus').textContent='کندل دریافت نشد: '+e.message}
- document.getElementById('updatedAt').textContent='آخرین بررسی: '+new Date().toLocaleTimeString();b.disabled=false;b.textContent='↻ به‌روزرسانی بازار'}
+let marketRefreshBusy=false,lastConnectionCheck=0;
+async function refreshMarket(){
+ if(marketRefreshBusy)return;
+ marketRefreshBusy=true;
+ const b=document.getElementById('refreshBtn');
+ const symbol=document.getElementById('symbolSelect').value;
+ document.getElementById('tickerLabel').textContent='قیمت '+symbol.replace('_',' / ');
+ b.disabled=true;b.textContent='در حال دریافت…';
+ let tickerItem={};
+ try{
+  const now=Date.now();
+  if(now-lastConnectionCheck>60000){
+   try{
+    const conn=await getJson('/api/market/connection');lastConnectionCheck=now;
+    const ok=!!conn.connected;
+    document.getElementById('connection').textContent=ok?'متصل':'عدم اتصال';
+    document.getElementById('connection').className='value '+(ok?'green':'yellow');
+    document.getElementById('connectionHint').textContent=ok?'API عمومی متصل · '+fmt(conn.latency_ms)+' ms':'داده عمومی در دسترس نیست · '+(conn.error||'اتصال بررسی شود');
+    document.getElementById('coreStatus').textContent=ok?'داده بازار در حال به‌روزرسانی خودکار است':'اتصال بازار برقرار نیست';
+    document.getElementById('coreBar').style.width=ok?'35%':'0%';
+    document.getElementById('diagnostics').textContent='Backend online · '+(conn.host||'Ourbit Futures')+' · '+(ok?'Ping successful':'Ping failed')+' · Read only';
+   }catch(e){
+    document.getElementById('connection').textContent='Backend offline';
+    document.getElementById('diagnostics').textContent='خطا در ارتباط با backend: '+e.message;
+   }
+  }
+  try{
+   const t=await getJson('/api/market/ticker?symbol='+encodeURIComponent(symbol));
+   const list=rowsOf(t);
+   tickerItem=list.find(x=>String(val(x,['symbol'])||'').toUpperCase()===symbol)||list[0]||{};
+   const price=val(tickerItem,['lastPrice','last','price','close','fairPrice','indexPrice']);
+   const change=val(tickerItem,['riseFallRate','changeRate','change_rate','priceChangePercent','change24h']);
+   document.getElementById('btcPrice').textContent=fmt(price);
+   document.getElementById('btcChange').textContent=change===null?'قیمت لحظه‌ای دریافت شد؛ تغییر ۲۴ساعته در API نبود':'تغییر گزارش‌شده: '+fmt(change);
+  }catch(e){
+   document.getElementById('btcPrice').textContent='—';
+   document.getElementById('btcChange').textContent='دریافت قیمت ناموفق: '+e.message;
+  }
+  try{
+   const c=await getJson('/api/market/candles?symbol='+encodeURIComponent(symbol)+'&interval='+activeInterval);
+   const ok=drawChart(c);updateMarketPanels(c,tickerItem);
+   document.getElementById('chartStatus').textContent=ok?'نمودار زنده OURBIT · به‌روزرسانی خودکار هر ۵ ثانیه · '+symbol+' · '+activeInterval:'پاسخ دریافت شد اما ساختار کندل نیازمند بررسی است';
+  }catch(e){
+   drawChart([]);document.getElementById('chartStatus').textContent='کندل زنده دریافت نشد: '+e.message+' · داده قبلی به‌عنوان زنده نمایش داده نمی‌شود.';
+  }
+  document.getElementById('updatedAt').textContent='آخرین دریافت بازار: '+new Date().toLocaleTimeString();
+ }finally{
+  marketRefreshBusy=false;b.disabled=false;b.textContent='↻ به‌روزرسانی بازار';
+ }
+}
 async function analyzeAgain(){const b=document.getElementById('analyzeBtn');b.disabled=true;b.textContent='در حال جست‌وجوی موقعیت ورود…';const body=document.getElementById('scannerRows');body.innerHTML='';let all=[],done=0,candidates=0,errors=0;try{const u=await getJson('/api/market/universe');const symbols=(u.scan_candidates||u.active_contracts||[]).map(x=>x.symbol).filter(Boolean);if(!symbols.length)throw new Error('فهرست نمادها خالی است');const pageSize=20;for(let i=0;i<symbols.length;i+=pageSize){const batch=symbols.slice(i,i+pageSize);const url='/api/market/scan?symbols='+encodeURIComponent(batch.join(','));const s=await getJson(url);const rows=s.results||[];all.push(...rows);done+=s.scanned_5m||0;candidates+=s.candidates||0;errors+=s.data_errors||0;document.getElementById('analysisStatus').textContent='در حال اسکن: '+done+' از '+symbols.length+' قرارداد · موقعیت ورود پیدا شده: '+candidates+' · خطای داده: '+errors;const frag=document.createDocumentFragment();rows.filter(x=>x.status==='candidate'&&x.signal).forEach(x=>{const f=x.five_min||{};const sig=x.signal||{};const cells=[x.symbol||'—',sig.direction||'—',fmt(sig.entry),x.score!==undefined?String(x.score)+'/100':'—','ورود احتمالی · SL '+fmt(sig.stop_loss)+' · TP1–TP6 '+(sig.targets||[]).map(fmt).join(' / ')];const tr=document.createElement('tr');cells.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});frag.appendChild(tr)});body.appendChild(frag)}document.getElementById('signalCount').textContent=String(candidates);if(candidates===0)body.innerHTML='<tr><td colspan="5" class="hint">در این بررسی هیچ ارز شرایط ورود کامل نداشت؛ به‌جای نمایش نمادهای بدون موقعیت، جدول خالی می‌ماند.</td></tr>';document.getElementById('analysisStatus').textContent='اسکن کامل شد: '+done+' از '+symbols.length+' قرارداد بررسی شد · موقعیت ورود: '+candidates+' · خطای داده: '+errors+' · فقط ارزهای دارای شرایط ورود نمایش داده می‌شوند.';document.getElementById('coreStatus').textContent='پایان اسکن؛ فقط موقعیت‌های واجد شرایط نمایش داده شدند.'}catch(e){document.getElementById('analysisStatus').textContent='اسکن کامل نشد: '+e.message+'؛ در صورت بروز خطا دوباره تلاش کن.';if(!body.children.length)body.innerHTML='<tr><td colspan="5" class="hint">اسکن ناموفق بود؛ اتصال API را بررسی کنید.</td></tr>'}finally{b.disabled=false;b.textContent='◎ تحلیل مجدد'}}
 document.getElementById('refreshBtn').addEventListener('click',refreshMarket);document.getElementById('analyzeBtn').addEventListener('click',analyzeAgain);
 document.querySelectorAll('[data-interval]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-interval]').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeInterval=b.dataset.interval;refreshMarket()}));
-document.getElementById('symbolSelect').addEventListener('change',refreshMarket);refreshMarket();
+document.getElementById('symbolSelect').addEventListener('change',refreshMarket);refreshMarket();setInterval(refreshMarket,5000);
 </script></body></html>
