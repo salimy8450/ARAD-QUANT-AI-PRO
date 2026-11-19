@@ -31,25 +31,29 @@ def parse_candles(payload: Any) -> list[dict[str, float]]:
     for row in _rows(payload):
         try:
             if isinstance(row, (list, tuple)) and len(row) >= 5:
-                # Ourbit contract kline arrays follow timestamp, O, H, L, C, V.
-                t, o, h, l, close_value = row[:5]
-                # Some legacy Ourbit market feeds order OHLC as O,C,H,L.
-                # Detect that variant by OHLC range consistency.
-                if h < max(o, close_value) or l > min(o, close_value) or h < l:
-                    close_value, h, l = h, l, close_value
-                c = close_value
+                # Futures V1 commonly returns [time, open, close, high, low, volume].
+                # Some feeds return the more common [time, open, high, low, close, volume].
+                t = row[0]
+                a, b, c, d = (float(x) for x in row[1:5])
+                valid = lambda high, low, close: high >= max(a, close) and low <= min(a, close) and high >= low
+                if valid(c, d, b):       # O, C, H, L
+                    o, close_value, h, l = a, b, c, d
+                elif valid(b, c, d):     # O, H, L, C
+                    o, h, l, close_value = a, b, c, d
+                else:
+                    continue
                 v = row[5] if len(row) > 5 else 0
             elif isinstance(row, dict):
                 t = row.get("time", row.get("timestamp", row.get("t", 0)))
                 o = row.get("open", row.get("o"))
                 h = row.get("high", row.get("h"))
                 l = row.get("low", row.get("l"))
-                c = row.get("close", row.get("c"))
+                close_value = row.get("close", row.get("c"))
                 v = row.get("volume", row.get("vol", row.get("v", 0)))
             else:
                 continue
             candle = {"time": float(t or 0), "open": float(o), "high": float(h),
-                      "low": float(l), "close": float(c), "volume": float(v or 0)}
+                      "low": float(l), "close": float(close_value), "volume": float(v or 0)}
             if all(math.isfinite(x) for x in candle.values()) and candle["close"] > 0 and candle["high"] >= candle["low"]:
                 parsed.append(candle)
         except (TypeError, ValueError, OverflowError):
