@@ -119,6 +119,7 @@ class OurbitFutures:
             "unknown_status_count": len(unknown),
             "tickers_received": len(ticker_rows),
             "active_contracts": active,
+            "scan_candidates": active + unknown,
             "unknown_status_contracts": unknown,
             "inactive_contracts": inactive,
             "source": "Ourbit Futures public contract/detail + contract/ticker",
