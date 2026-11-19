@@ -54,6 +54,22 @@ async def market_ticker(symbol: str | None = Query(default=None)):
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Ourbit Futures ticker unavailable: {str(exc)[:250]}")
 
+@app.get("/api/market/depth")
+async def market_depth(symbol: str = Query(min_length=3, max_length=40), limit: int = Query(default=20, ge=1, le=100)):
+    try:
+        return {"source": "ourbit_futures_orderbook", "symbol": symbol.upper(),
+                "data": await exchange.depth(symbol.upper(), limit)}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Ourbit Futures order book unavailable: {str(exc)[:250]}")
+
+@app.get("/api/market/deals")
+async def market_deals(symbol: str = Query(min_length=3, max_length=40)):
+    try:
+        return {"source": "ourbit_futures_recent_trades", "symbol": symbol.upper(),
+                "data": await exchange.deals(symbol.upper())}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Ourbit Futures trades unavailable: {str(exc)[:250]}")
+
 @app.get("/api/market/candles")
 async def market_candles(
     symbol: str = Query(min_length=3, max_length=40),
