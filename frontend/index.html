@@ -23,9 +23,9 @@ table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:right
 <section class="panel span5 hero"><div class="orb"></div><div><div class="label">هسته هوش مصنوعی ARAD</div><div class="value">QUANT CORE</div><div class="hint" id="coreStatus">در انتظار تأیید داده‌های بازار</div><div class="bar"><i id="coreBar"></i></div></div></section>
 <section class="panel span7"><div class="row"><b>نمودار بازار</b><select class="select" id="symbolSelect"><option value="BTC_USDT">BTC / USDT</option><option value="ETH_USDT">ETH / USDT</option><option value="SOL_USDT">SOL / USDT</option></select></div><div class="tabs"><button class="tab active" data-interval="Min5">۵ دقیقه</button><button class="tab" data-interval="Min15">۱۵ دقیقه</button><button class="tab" data-interval="Min60">۱ ساعت</button></div><canvas id="priceChart" class="chart"></canvas><div class="hint" id="chartStatus">نمودار پس از دریافت کندل‌های واقعی نمایش داده می‌شود.</div></section>
 <section class="panel span8"><div class="row"><b>آزمایش زنده تحلیل ۵ ارز</b><span class="chip">BTC · ETH · SOL · DOGE · XRP | 5m / 15m / 1h</span></div><table><thead><tr><th>قرارداد</th><th>جهت</th><th>قیمت / ورود</th><th>امتیاز</th><th>نتیجه تحلیل</th></tr></thead><tbody id="scannerRows"><tr><td colspan="5" class="hint">برای دریافت فهرست کامل قراردادهای فعال، دکمه تحلیل مجدد را بزنید.</td></tr></tbody></table></section>
-<section class="panel span4"><b>قدرت خرید و فروش</b><div class="placeholder" style="margin-top:13px">در انتظار داده معاملات و دفتر سفارش واقعی</div><div class="row hint" style="margin-top:12px"><span>خریداران</span><span>فروشندگان</span></div><div class="bar"><i></i></div></section>
+<section class="panel span4"><b>قدرت خرید و فروش · دفتر سفارش زنده</b><div class="metrics" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><span class="tag">حجم سفارش خرید</span><b id="bidVolume">—</b></div><div class="metric"><span class="tag">حجم سفارش فروش</span><b id="askVolume">—</b></div></div><div class="row hint" style="margin-top:12px"><span id="buyerShare">خریداران: —</span><span id="sellerShare">فروشندگان: —</span></div><div class="bar"><i id="orderImbalance"></i></div><p class="hint" id="orderBookStatus">در انتظار دفتر سفارش عمومی Ourbit Futures</p><p class="hint" id="tradeFlowStatus">جریان معاملات اخیر هنوز دریافت نشده است.</p></section>
 <section class="panel span6"><b>نقشه نقدینگی و سطوح کلیدی</b><div class="metrics"><div class="metric"><span class="tag">حمایت نزدیک</span><b>—</b></div><div class="metric"><span class="tag">مقاومت نزدیک</span><b>—</b></div><div class="metric"><span class="tag">نقدینگی بالا</span><b>—</b></div><div class="metric"><span class="tag">نقدینگی پایین</span><b>—</b></div></div><p class="hint">این سطوح پس از دریافت و پردازش داده‌های معتبر محاسبه می‌شوند.</p></section>
-<section class="panel span6"><b>برنامه‌ریزی معامله</b><div class="row hint" style="margin-top:12px"><span>جهت: —</span><span>ریسک به بازده: —</span></div><div class="levels"><div class="level"><span class="tag">ENTRY</span><b>—</b></div><div class="level"><span class="tag">STOP LOSS</span><b>—</b></div><div class="level"><span class="tag">TP1</span><b>—</b></div><div class="level"><span class="tag">TP2</span><b>—</b></div><div class="level"><span class="tag">TP3</span><b>—</b></div><div class="level"><span class="tag">TP4–TP6</span><b>—</b></div></div><p class="hint">سطوح ورود و خروج فقط با تشکیل موقعیت معتبر محاسبه خواهند شد.</p></section>
+<section class="panel span6"><b>برنامه معامله آزمایشی · متصل به تحلیل</b><div class="row hint" style="margin-top:12px"><span id="planDirection">جهت: —</span><span id="planRR">ریسک به بازده: —</span></div><div class="levels"><div class="level"><span class="tag">ENTRY</span><b id="planEntry">—</b></div><div class="level"><span class="tag">STOP LOSS</span><b id="planSL">—</b></div><div class="level"><span class="tag">TP1</span><b id="planTP1">—</b></div><div class="level"><span class="tag">TP2</span><b id="planTP2">—</b></div><div class="level"><span class="tag">TP3</span><b id="planTP3">—</b></div><div class="level"><span class="tag">TP4–TP6</span><b id="planTP456">—</b></div></div><p class="hint" id="planStatus">پس از تحلیل نماد انتخابی، فقط در صورت تشکیل فرصت آزمایشی تکمیل می‌شود.</p></section>
 <section class="panel span4"><b>آمار عملکرد سیگنال‌ها</b><div class="metrics" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><span class="tag">نرخ برد</span><b>—</b></div><div class="metric"><span class="tag">بردها</span><b>۰</b></div><div class="metric"><span class="tag">باخت‌ها</span><b>۰</b></div><div class="metric"><span class="tag">سود / زیان</span><b>—</b></div></div><p class="hint">آمار تا زمان ثبت و ارزیابی معاملات آزمایشی خالی می‌ماند.</p></section>
 <section class="panel span8"><b>گزارش سیستم و تشخیص خطا</b><p class="hint" id="diagnostics">وضعیت backend هنوز بررسی نشده است.</p><p class="hint" id="analysisStatus">موتور سیگنال تا زمان اعتبارسنجی داده‌های زنده و آزمون استراتژی غیرفعال است.</p></section>
 </div>
@@ -78,6 +78,28 @@ function drawChart(raw){
  ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle='#e8f2ff88';ctx.lineWidth=1;
  ctx.beginPath();ctx.moveTo(pad,scale(last.c));ctx.lineTo(w-pad,scale(last.c));ctx.stroke();ctx.restore();
  return true;
+}
+function renderOrderBook(raw,tradeRaw){
+ const d=unwrap(raw)||{},bids=Array.isArray(d.bids)?d.bids:[],asks=Array.isArray(d.asks)?d.asks:[];
+ const qty=x=>Number(Array.isArray(x)?x[1]:(x.quantity??x.qty??x.size??0))||0;
+ const bid=bids.reduce((s,x)=>s+qty(x),0),ask=asks.reduce((s,x)=>s+qty(x),0),total=bid+ask;
+ document.getElementById('bidVolume').textContent=fmt(bid);
+ document.getElementById('askVolume').textContent=fmt(ask);
+ if(total>0){const bp=bid/total*100,ap=100-bp;document.getElementById('buyerShare').textContent='خریداران: '+bp.toFixed(1)+'٪';document.getElementById('sellerShare').textContent='فروشندگان: '+ap.toFixed(1)+'٪';document.getElementById('orderImbalance').style.width=bp.toFixed(1)+'%';document.getElementById('orderBookStatus').textContent='دفتر سفارش دریافت شد · '+bids.length+' سطح خرید و '+asks.length+' سطح فروش';}
+ else document.getElementById('orderBookStatus').textContent='ساختار دفتر سفارش خالی یا نامعتبر است؛ نسبت خرید/فروش قابل محاسبه نیست.';
+ const trades=rowsOf(tradeRaw);let buy=0,sell=0;
+ for(const t of trades){const side=String(val(t,['side','trade_type','type','takerSide'])||'').toUpperCase(),q=Number(val(t,['quantity','qty','vol','amount'])||0);if(['BUY','BID','BUYER'].includes(side))buy+=q;else if(['SELL','ASK','SELLER'].includes(side))sell+=q;}
+ document.getElementById('tradeFlowStatus').textContent=trades.length?'معاملات اخیر: '+trades.length+' ردیف · حجم خرید '+fmt(buy)+' / حجم فروش '+fmt(sell):'داده معاملات اخیر در پاسخ API موجود نیست.';
+}
+function renderTradePlan(x,symbol){
+ const sig=x&&x.signal,t=sig?(sig.targets||[]):[];
+ if(!sig){document.getElementById('planDirection').textContent='جهت: —';document.getElementById('planRR').textContent='ریسک به بازده: —';['planEntry','planSL','planTP1','planTP2','planTP3','planTP456'].forEach(id=>document.getElementById(id).textContent='—');document.getElementById('planStatus').textContent='برای '+symbol+' هنوز فرصت آزمایشی معتبر شناسایی نشده است.';return;}
+ const entry=Number(sig.entry),sl=Number(sig.stop_loss),risk=Math.abs(entry-sl),rr=risk>0?Math.abs(Number(t[0])-entry)/risk:0;
+ document.getElementById('planDirection').textContent='جهت: '+sig.direction;document.getElementById('planRR').textContent='ریسک به بازده TP1: 1:'+rr.toFixed(2);
+ document.getElementById('planEntry').textContent=fmt(entry);document.getElementById('planSL').textContent=fmt(sl);
+ ['planTP1','planTP2','planTP3'].forEach((id,i)=>document.getElementById(id).textContent=fmt(t[i]));
+ document.getElementById('planTP456').textContent=t.slice(3,6).map(fmt).join(' / ');
+ document.getElementById('planStatus').textContent='فرصت پژوهشی '+symbol+' · امتیاز '+(x.score??'—')+'/100 · بدون سفارش واقعی.';
 }
 function updateMarketPanels(raw,ticker){
  const candles=candleRows(raw),recent=candles.slice(-30),last=recent[recent.length-1];
@@ -138,6 +160,7 @@ async function refreshMarket(){
   try{
    const c=await getJson('/api/market/candles?symbol='+encodeURIComponent(symbol)+'&interval='+activeInterval);
    const ok=drawChart(c);updateMarketPanels(c,tickerItem);
+   try{const [depth,deals]=await Promise.all([getJson('/api/market/depth?symbol='+encodeURIComponent(symbol)+'&limit=20'),getJson('/api/market/deals?symbol='+encodeURIComponent(symbol))]);renderOrderBook(depth.data||depth,deals.data||deals);}catch(bookErr){document.getElementById('orderBookStatus').textContent='دریافت دفتر سفارش ناموفق: '+bookErr.message;document.getElementById('tradeFlowStatus').textContent='داده جریان معاملات موجود نیست.';}
    const parsedCount=Number(c.parsed_closed_candles??candleRows(c).length),rawCount=Number(c.raw_rows??candleRows(c).length);
    document.getElementById('chartStatus').textContent='تشخیص کندل OURBIT · خام: '+rawCount+' ردیف · معتبر و بسته: '+parsedCount+' · '+symbol+' · '+activeInterval+(ok?' · نمودار فعال':' · ساختار کندل نامعتبر');
   }catch(e){
@@ -183,6 +206,8 @@ async function analyzeAgain(){
   }
   const candidates=rows.filter(x=>x.status==='candidate'&&x.signal).length;
   document.getElementById('signalCount').textContent=String(candidates);
+  const selected=document.getElementById('symbolSelect').value;
+  renderTradePlan(rows.find(x=>String(x.symbol).toUpperCase()===selected&&x.status==='candidate')||null,selected);
   document.getElementById('analysisStatus').textContent='آزمایش تمام شد: '+analysed+' ارز از '+requested.length+' ارز انتخابی بررسی شد · فرصت احتمالی: '+candidates+' · خطای داده: '+errors+'. '+(missing.length?'نمادهای پیدا‌نشده: '+missing.join(', '):'');
   document.getElementById('coreStatus').textContent='تحلیل واقعی کندل‌های بسته‌شده انجام شد؛ نتایج آزمایشی‌اند و هنوز اعتبارسنجی سودآوری نشده‌اند.';
  }catch(e){
