@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+import asyncio
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from backend.app.providers.ourbit_futures import OurbitFutures
+from backend.app.market_scanner import parse_candles, _frame, evaluate_symbol
 
 app = FastAPI(
     title="ARAD QUANT AI PRO",
@@ -70,6 +72,67 @@ async def market_candles(
                 "interval": interval, "data": data}
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Ourbit Futures candles unavailable: {str(exc)[:250]}")
+
+
+@app.get("/api/market/scan")
+async def market_scan():
+    """Scan every discovered futures contract on closed 5m candles, then confirm shortlisted setups."""
+    try:
+        universe = await exchange.market_universe()
+        contracts = universe.get("scan_candidates", [])
+        semaphore = asyncio.Semaphore(6)
+        scanned = 0
+        errors = 0
+
+        async def inspect(item):
+            nonlocal scanned, errors
+            symbol = item.get("symbol")
+            if not symbol:
+                return {"symbol": "?", "status": "invalid_symbol", "label": "نماد نامعتبر"}
+            async with semaphore:
+                try:
+                    raw5 = await exchange.candles(symbol, "Min5")
+                    candles5 = parse_candles(raw5)
+                    f5 = _frame(candles5)
+                    scanned += 1
+                    if not f5.get("ready"):
+                        return {"symbol": symbol, "status": "insufficient_data",
+                                "label": "داده ۵دقیقه ناکافی", "bars_5m": len(candles5)}
+                    # 5m is the primary detector. Only directional/momentum candidates
+                    # incur the extra 15m and 1h requests, reducing API load.
+                    direction = f5.get("direction")
+                    preliminary = (direction != "NEUTRAL" and
+                                   (f5.get("volume_ratio", 0) >= 1.05 or f5.get("breakout20")))
+                    if not preliminary:
+                        return {"symbol": symbol, "status": "no_setup",
+                                "label": "فعلاً بدون شرایط ورود", "five_min": f5}
+                    raw15, raw60 = await asyncio.gather(
+                        exchange.candles(symbol, "Min15"),
+                        exchange.candles(symbol, "Min60"),
+                    )
+                    result = evaluate_symbol(raw5, raw15, raw60)
+                    return {"symbol": symbol, **result}
+                except Exception as exc:
+                    errors += 1
+                    return {"symbol": symbol, "status": "data_error",
+                            "label": "خطای دریافت داده", "error": str(exc)[:160]}
+
+        results = await asyncio.gather(*(inspect(x) for x in contracts))
+        results.sort(key=lambda x: (x.get("status") == "candidate",
+                                    x.get("score", 0)), reverse=True)
+        candidates = [x for x in results if x.get("status") == "candidate"]
+        return {
+            "status": "completed",
+            "universe_total": len(contracts),
+            "scanned_5m": scanned,
+            "candidates": len(candidates),
+            "data_errors": errors,
+            "results": results,
+            "method": "closed 5m primary; 15m confirmation; 1h context only",
+            "note": "Research candidates only. Not validated trading signals; paper-test before use."
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Market scan unavailable: {str(exc)[:300]}")
 
 @app.get("/api/signals")
 async def signals():
