@@ -22,7 +22,7 @@ table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:right
 <section class="panel span3"><div class="label">حالت سیستم</div><div class="value green">تحقیقاتی</div><div class="hint">بدون ارسال سفارش به صرافی</div></section>
 <section class="panel span5 hero"><div class="orb"></div><div><div class="label">هسته هوش مصنوعی ARAD</div><div class="value">QUANT CORE</div><div class="hint" id="coreStatus">در انتظار تأیید داده‌های بازار</div><div class="bar"><i id="coreBar"></i></div></div></section>
 <section class="panel span7"><div class="row"><b>نمودار بازار</b><select class="select" id="symbolSelect"><option value="BTC_USDT">BTC / USDT</option><option value="ETH_USDT">ETH / USDT</option><option value="SOL_USDT">SOL / USDT</option></select></div><div class="tabs"><button class="tab active" data-interval="Min5">۵ دقیقه</button><button class="tab" data-interval="Min15">۱۵ دقیقه</button><button class="tab" data-interval="Min60">۱ ساعت</button></div><canvas id="priceChart" class="chart"></canvas><div class="hint" id="chartStatus">نمودار پس از دریافت کندل‌های واقعی نمایش داده می‌شود.</div></section>
-<section class="panel span8"><div class="row"><b>اسکنر فرصت‌های معاملاتی</b><span class="chip">LONG / SHORT · 5m / 15m / 1h</span></div><table><thead><tr><th>قرارداد</th><th>جهت</th><th>قیمت / ورود</th><th>امتیاز</th><th>نتیجه تحلیل</th></tr></thead><tbody id="scannerRows"><tr><td colspan="5" class="hint">برای دریافت فهرست کامل قراردادهای فعال، دکمه تحلیل مجدد را بزنید.</td></tr></tbody></table></section>
+<section class="panel span8"><div class="row"><b>آزمایش زنده تحلیل ۵ ارز</b><span class="chip">BTC · ETH · SOL · DOGE · XRP | 5m / 15m / 1h</span></div><table><thead><tr><th>قرارداد</th><th>جهت</th><th>قیمت / ورود</th><th>امتیاز</th><th>نتیجه تحلیل</th></tr></thead><tbody id="scannerRows"><tr><td colspan="5" class="hint">برای دریافت فهرست کامل قراردادهای فعال، دکمه تحلیل مجدد را بزنید.</td></tr></tbody></table></section>
 <section class="panel span4"><b>قدرت خرید و فروش</b><div class="placeholder" style="margin-top:13px">در انتظار داده معاملات و دفتر سفارش واقعی</div><div class="row hint" style="margin-top:12px"><span>خریداران</span><span>فروشندگان</span></div><div class="bar"><i></i></div></section>
 <section class="panel span6"><b>نقشه نقدینگی و سطوح کلیدی</b><div class="metrics"><div class="metric"><span class="tag">حمایت نزدیک</span><b>—</b></div><div class="metric"><span class="tag">مقاومت نزدیک</span><b>—</b></div><div class="metric"><span class="tag">نقدینگی بالا</span><b>—</b></div><div class="metric"><span class="tag">نقدینگی پایین</span><b>—</b></div></div><p class="hint">این سطوح پس از دریافت و پردازش داده‌های معتبر محاسبه می‌شوند.</p></section>
 <section class="panel span6"><b>برنامه‌ریزی معامله</b><div class="row hint" style="margin-top:12px"><span>جهت: —</span><span>ریسک به بازده: —</span></div><div class="levels"><div class="level"><span class="tag">ENTRY</span><b>—</b></div><div class="level"><span class="tag">STOP LOSS</span><b>—</b></div><div class="level"><span class="tag">TP1</span><b>—</b></div><div class="level"><span class="tag">TP2</span><b>—</b></div><div class="level"><span class="tag">TP3</span><b>—</b></div><div class="level"><span class="tag">TP4–TP6</span><b>—</b></div></div><p class="hint">سطوح ورود و خروج فقط با تشکیل موقعیت معتبر محاسبه خواهند شد.</p></section>
@@ -147,7 +147,48 @@ async function refreshMarket(){
   marketRefreshBusy=false;b.disabled=false;b.textContent='↻ به‌روزرسانی بازار';
  }
 }
-async function analyzeAgain(){const b=document.getElementById('analyzeBtn');b.disabled=true;b.textContent='در حال جست‌وجوی موقعیت ورود…';const body=document.getElementById('scannerRows');body.innerHTML='';let all=[],done=0,candidates=0,errors=0;try{const u=await getJson('/api/market/universe');const symbols=(u.scan_candidates||u.active_contracts||[]).map(x=>x.symbol).filter(Boolean);if(!symbols.length)throw new Error('فهرست نمادها خالی است');const pageSize=20;for(let i=0;i<symbols.length;i+=pageSize){const batch=symbols.slice(i,i+pageSize);const url='/api/market/scan?symbols='+encodeURIComponent(batch.join(','));const s=await getJson(url);const rows=s.results||[];all.push(...rows);done+=s.scanned_5m||0;candidates+=s.candidates||0;errors+=s.data_errors||0;document.getElementById('analysisStatus').textContent='در حال اسکن: '+done+' از '+symbols.length+' قرارداد · موقعیت ورود پیدا شده: '+candidates+' · خطای داده: '+errors;const frag=document.createDocumentFragment();rows.filter(x=>x.status==='candidate'&&x.signal).forEach(x=>{const f=x.five_min||{};const sig=x.signal||{};const cells=[x.symbol||'—',sig.direction||'—',fmt(sig.entry),x.score!==undefined?String(x.score)+'/100':'—','ورود احتمالی · SL '+fmt(sig.stop_loss)+' · TP1–TP6 '+(sig.targets||[]).map(fmt).join(' / ')];const tr=document.createElement('tr');cells.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});frag.appendChild(tr)});body.appendChild(frag)}document.getElementById('signalCount').textContent=String(candidates);if(candidates===0)body.innerHTML='<tr><td colspan="5" class="hint">در این بررسی هیچ ارز شرایط ورود کامل نداشت؛ به‌جای نمایش نمادهای بدون موقعیت، جدول خالی می‌ماند.</td></tr>';document.getElementById('analysisStatus').textContent='اسکن کامل شد: '+done+' از '+symbols.length+' قرارداد بررسی شد · موقعیت ورود: '+candidates+' · خطای داده: '+errors+' · فقط ارزهای دارای شرایط ورود نمایش داده می‌شوند.';document.getElementById('coreStatus').textContent='پایان اسکن؛ فقط موقعیت‌های واجد شرایط نمایش داده شدند.'}catch(e){document.getElementById('analysisStatus').textContent='اسکن کامل نشد: '+e.message+'؛ در صورت بروز خطا دوباره تلاش کن.';if(!body.children.length)body.innerHTML='<tr><td colspan="5" class="hint">اسکن ناموفق بود؛ اتصال API را بررسی کنید.</td></tr>'}finally{b.disabled=false;b.textContent='◎ تحلیل مجدد'}}
+async function analyzeAgain(){
+ const b=document.getElementById('analyzeBtn'),body=document.getElementById('scannerRows');
+ const requested=['BTC_USDT','ETH_USDT','SOL_USDT','DOGE_USDT','XRP_USDT'];
+ b.disabled=true;b.textContent='در حال تحلیل ۵ ارز…';
+ body.innerHTML='<tr><td colspan="5" class="hint">در حال دریافت کندل‌های واقعی و تحلیل تایم‌فریم‌ها…</td></tr>';
+ let errors=0,analysed=0;
+ try{
+  const u=await getJson('/api/market/universe');
+  const listed=new Set((u.scan_candidates||u.active_contracts||[]).map(x=>String(x.symbol||'').toUpperCase()));
+  const symbols=requested.filter(x=>listed.has(x));
+  const missing=requested.filter(x=>!listed.has(x));
+  if(!symbols.length)throw new Error('هیچ‌یک از ۵ نماد انتخابی در فهرست قراردادهای قابل‌اسکن Ourbit پیدا نشد');
+  const url='/api/market/scan?symbols='+encodeURIComponent(symbols.join(','));
+  const scan=await getJson(url),rows=scan.results||[];
+  errors=scan.data_errors||0;analysed=scan.scanned_5m||0;
+  body.innerHTML='';
+  for(const sym of missing){
+   const tr=document.createElement('tr');
+   [''+sym,'—','—','—','در فهرست قراردادهای فعال پیدا نشد'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});
+   body.appendChild(tr);
+  }
+  for(const x of rows){
+   const f5=x.five_min||{},sig=x.signal||{},direction=sig.direction||f5.direction||'—';
+   const price=sig.entry??f5.close??null;
+   const score=x.score!==undefined?String(x.score)+'/100':'—';
+   let status=x.label||x.status||'نامشخص';
+   if(x.status==='candidate')status='فرصت احتمالی · آزمایشی | SL '+fmt(sig.stop_loss)+' | '+(sig.targets||[]).map((v,i)=>'TP'+(i+1)+' '+fmt(v)).join(' · ');
+   else if(x.status==='no_setup'&&x.score!==undefined)status='شرایط ورود کامل نیست';
+   else if(x.status==='data_error')status='خطای داده: '+(x.error||'نامشخص');
+   const tr=document.createElement('tr');
+   [x.symbol||'—',direction,fmt(price),score,status].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});
+   body.appendChild(tr);
+  }
+  const candidates=rows.filter(x=>x.status==='candidate'&&x.signal).length;
+  document.getElementById('signalCount').textContent=String(candidates);
+  document.getElementById('analysisStatus').textContent='آزمایش تمام شد: '+analysed+' ارز از '+requested.length+' ارز انتخابی بررسی شد · فرصت احتمالی: '+candidates+' · خطای داده: '+errors+'. '+(missing.length?'نمادهای پیدا‌نشده: '+missing.join(', '):'');
+  document.getElementById('coreStatus').textContent='تحلیل واقعی کندل‌های بسته‌شده انجام شد؛ نتایج آزمایشی‌اند و هنوز اعتبارسنجی سودآوری نشده‌اند.';
+ }catch(e){
+  document.getElementById('analysisStatus').textContent='تحلیل انجام نشد: '+e.message;
+  body.innerHTML='<tr><td colspan="5" class="hint">تحلیل ناموفق بود: '+e.message+'</td></tr>';
+ }finally{b.disabled=false;b.textContent='◎ تحلیل مجدد'}
+}
 document.getElementById('refreshBtn').addEventListener('click',refreshMarket);document.getElementById('analyzeBtn').addEventListener('click',analyzeAgain);
 document.querySelectorAll('[data-interval]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-interval]').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeInterval=b.dataset.interval;refreshMarket()}));
 document.getElementById('symbolSelect').addEventListener('change',refreshMarket);refreshMarket();setInterval(refreshMarket,5000);
