@@ -16,7 +16,7 @@ import httpx
 class OurbitFutures:
     def __init__(self) -> None:
         self.base_url = os.getenv(
-            "OURBIT_FUTURES_BASE_URL", ""
+            "OURBIT_FUTURES_BASE_URL", "https://contract.ourbit.com"
         ).strip().rstrip("/")
         self.timeout = float(os.getenv("OURBIT_HTTP_TIMEOUT", "8"))
 
