@@ -154,6 +154,51 @@ h1{font-size:clamp(23px,3.5vw,36px);text-shadow:0 0 22px #00cfff22}
 .room-floor{border-color:#1b5873;color:#61a8c2}
 @media(max-width:520px){.hero{align-items:center;flex-direction:column;text-align:center}.neural-visual{width:100%;height:190px;flex-basis:auto}.hero .bar{width:100%}}
 
+
+/* Reference cockpit layout: left metrics, central live chart/core, right execution panels */
+.room-shell{background:radial-gradient(ellipse at 50% 0%,#174b63 0%,#0b1b2a 43%,#040a12 100%);border:1px solid #39748d;box-shadow:0 35px 90px #000d,inset 0 1px 0 #b9f4ff30}
+.room-wall{background:linear-gradient(90deg,#06111d,#164b61 48%,#06111d);border-color:#4b91a8;color:#b4f4ff}
+.room-shell .grid{grid-template-columns:minmax(0,1fr) minmax(0,1.42fr) minmax(0,1fr);grid-template-areas:
+"s1 s2 s3"
+"s4 core s4"
+"sentiment chart orderbook"
+"stats chart plan"
+"liquidity scanner scanner"
+"diagnostics diagnostics diagnostics";gap:16px}
+.room-shell .grid>.panel:nth-child(1){grid-area:s1}
+.room-shell .grid>.panel:nth-child(2){grid-area:s2}
+.room-shell .grid>.panel:nth-child(3){grid-area:s3}
+.room-shell .grid>.panel:nth-child(4){grid-area:s4}
+.room-shell .grid>.panel:nth-child(5){grid-area:core;min-height:150px}
+.room-shell .grid>.panel:nth-child(6){grid-area:chart;grid-row:3 / span 2;min-height:520px;transform:translateZ(48px)}
+.room-shell .grid>.panel:nth-child(7){grid-area:scanner}
+.room-shell .grid>.panel:nth-child(8){grid-area:orderbook;min-height:235px}
+.room-shell .grid>.panel:nth-child(9){grid-area:liquidity;min-height:190px}
+.room-shell .grid>.panel:nth-child(10){grid-area:plan;min-height:260px}
+.room-shell .grid>.panel:nth-child(11){grid-area:sentiment;min-height:220px}
+.room-shell .grid>.panel:nth-child(12){grid-area:stats;min-height:220px}
+.room-shell .grid>.panel:nth-child(13){grid-area:diagnostics}
+.room-shell .grid>.panel:nth-child(6) .chart{height:390px}
+.room-shell .grid>.panel:nth-child(7) table{min-width:680px}
+.room-shell .grid>.panel:nth-child(7){overflow-x:auto}
+.room-shell .grid>.panel{background:linear-gradient(145deg,#17364c 0%,#0a1a2a 58%,#07121e 100%);border-color:#43849d}
+.neural-visual{position:relative;flex:0 0 150px;width:150px;height:150px;min-width:0;border:1px solid #368ca8;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 45%,#123f5c,#071321 70%);box-shadow:0 0 35px #20d9f255,inset 0 0 25px #20d9f233}
+#sphereCanvas{display:block;width:100%;height:100%}
+.neural-label{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:8px;letter-spacing:.6px;color:#9defff;text-shadow:0 0 8px #20d9f2}
+.room-shell .grid>.panel:nth-child(6) .chart{background:linear-gradient(180deg,#061321,#091b2c)}
+@media(max-width:900px){
+ .room-shell .grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:
+ "s1 s2" "s3 s4" "core core" "chart chart" "orderbook orderbook" "plan plan" "sentiment stats" "liquidity liquidity" "scanner scanner" "diagnostics diagnostics"}
+ .room-shell .grid>.panel:nth-child(6){grid-row:auto;min-height:360px}
+ .room-shell .grid>.panel:nth-child(6) .chart{height:280px}
+}
+@media(max-width:520px){
+ .room-shell .grid{grid-template-columns:minmax(0,1fr);grid-template-areas:
+ "s1" "s2" "s3" "s4" "core" "chart" "orderbook" "plan" "sentiment" "stats" "liquidity" "scanner" "diagnostics"}
+ .room-shell .grid>.panel:nth-child(6) .chart{height:245px}
+ .neural-visual{flex-basis:100px;width:100px;height:100px}
+}
+
 </style></head><body><main>
 <header class="top"><div class="brand">ARAD <em>QUANT</em> AI PRO</div><div class="chip">OURBIT FUTURES · READ ONLY / PAPER MODE</div></header>
 <h1>مرکز هوشمند تحلیل بازار</h1><div class="lead">تشخیص حرکت در ۵ دقیقه · تأیید در ۱۵ دقیقه · زمینه روند در یک ساعت</div>
@@ -229,7 +274,7 @@ function renderCandleSentiment(raw){
  const a=candleRows(raw).slice(-12);
  if(a.length<5){document.getElementById('sentimentDirection').textContent='داده ناکافی';document.getElementById('sentimentStrength').textContent='—';document.getElementById('sentimentStatus').textContent='برای سنجش مومنتوم به حداقل ۵ کندل معتبر نیاز است.';return;}
  let up=0,down=0,body=0;
- for(const x of a){if(x.close>x.open)up++;else if(x.close<x.open)down++;body+=Math.abs(x.close-x.open)/Math.max(x.open,1e-12);}
+ for(const x of a){if(x.c>x.o)up++;else if(x.c<x.o)down++;body+=Math.abs(x.c-x.o)/Math.max(x.o,1e-12);}
  const total=up+down,score=total?up/total*100:50,dir=score>=60?'متمایل به صعود':score<=40?'متمایل به نزول':'خنثی';
  document.getElementById('sentimentDirection').textContent=dir;
  document.getElementById('sentimentStrength').textContent=Math.round(Math.abs(score-50)*2)+' / 100';
