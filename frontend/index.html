@@ -9,12 +9,62 @@ h1{font-size:clamp(24px,4vw,39px);margin:25px 0 6px}.lead{color:var(--muted);lin
 .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:13px;margin:18px 0}.panel{background:linear-gradient(145deg,#142239f2,#0c1524f7);border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0;box-shadow:0 12px 34px #0003}.span3{grid-column:span 3}.span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}.span7{grid-column:span 7}.span8{grid-column:span 8}.span12{grid-column:span 12}.label{color:var(--muted);font-size:10px;letter-spacing:1px}.value{font-size:23px;font-weight:850;margin:9px 0 4px;direction:ltr;text-align:right}.hint{color:var(--muted);font-size:12px;line-height:1.7}.green{color:var(--green)}.yellow{color:var(--gold)}.red{color:var(--red)}.row{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.hero{display:flex;align-items:center;gap:20px;min-height:175px}.orb{flex:0 0 112px;height:112px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#e7ffff,#61e8ef 13%,#2187bd 39%,#172d59 63%,#0b1424 75%);box-shadow:0 0 32px #32d9ed77,inset 0 0 22px #d4ffff55;animation:pulse 3.2s ease-in-out infinite}@keyframes pulse{50%{transform:scale(1.045);box-shadow:0 0 62px #32d9ed99,inset 0 0 25px #d4ffff66}}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:13px}.metric{background:#0a1321;border:1px solid #20334b;border-radius:11px;padding:11px}.metric b{display:block;font-size:17px;margin-top:7px;direction:ltr;text-align:right}.chart{width:100%;height:245px;background:linear-gradient(180deg,#0b1727,#0a1220);border:1px solid #20334b;border-radius:12px;margin-top:13px}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.tab{border:1px solid var(--line);border-radius:8px;padding:7px 11px;color:var(--muted);background:#0b1524;cursor:pointer}.tab.active{border-color:var(--cyan);color:var(--cyan);background:#102b3b}
 table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:right;padding:11px 7px;border-bottom:1px solid #25364b;font-size:12px}th{color:var(--muted);font-weight:500}.placeholder{padding:18px;border:1px dashed #314761;border-radius:10px;color:var(--muted);text-align:center;line-height:1.8}.bar{height:8px;border-radius:9px;background:#263750;overflow:hidden;margin-top:9px}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#237fae,var(--cyan))}.levels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.level{background:#0a1422;border:1px solid #20344c;border-radius:10px;padding:10px}.level b{display:block;margin-top:7px;direction:ltr;text-align:right}.tag{font-size:10px;color:var(--muted)}footer{margin:18px 2px;color:var(--muted);font-size:11px;line-height:1.8}
+
+/* Immersive three-screen trading cockpit */
+body{background:radial-gradient(ellipse at 50% 0%,#17435a 0,#091421 42%,#03070d 100%);perspective:1600px}
+main{max-width:1740px;padding:28px 24px 40px}
+.top{border-bottom-color:#28516a}
+.brand{ text-shadow:0 0 24px #43d9e866}
+h1{letter-spacing:.2px;text-shadow:0 4px 24px #43d9e822}
+.grid{direction:ltr;display:grid;grid-template-columns:minmax(0,1.24fr) minmax(0,1fr);grid-template-areas:
+"statuses statuses"
+"core core"
+"chart analysis"
+"front1 front2"
+"front3 plan"
+"stats diagnostics";gap:22px;align-items:stretch;position:relative;transform-style:preserve-3d}
+.grid>.panel{direction:rtl;position:relative;overflow:hidden;border:1px solid #315875;border-radius:17px;background:linear-gradient(145deg,#172b42f5 0%,#0b1727fa 52%,#09111efc 100%);box-shadow:0 22px 45px #0008,0 0 0 4px #07101b,0 0 0 5px #29465e, inset 0 1px 0 #a8eaff26,inset 0 -18px 35px #02081288;transform:translateZ(12px)}
+.grid>.panel:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,transparent,#48dff5,#86f6dc,transparent);opacity:.65;pointer-events:none}
+.grid>.panel:after{content:"";position:absolute;inset:0;background:linear-gradient(125deg,#ffffff09,transparent 26%,transparent 72%,#52c9f009);pointer-events:none}
+.grid>.panel>*{position:relative;z-index:1}
+.grid>.panel:nth-child(odd){box-shadow:0 24px 48px #0009,0 0 0 4px #07101b,0 0 0 5px #213e57,inset 0 1px 0 #a8eaff26}
+.grid>.panel:nth-child(even){box-shadow:0 24px 48px #0009,0 0 0 4px #07101b,0 0 0 5px #2b4d66,inset 0 1px 0 #a8eaff26}
+.grid>.panel.span3{grid-column:auto}.grid>.panel.span4,.grid>.panel.span5,.grid>.panel.span6,.grid>.panel.span7,.grid>.panel.span8,.grid>.panel.span12{grid-column:auto}
+.grid>.panel:nth-child(1),.grid>.panel:nth-child(2),.grid>.panel:nth-child(3),.grid>.panel:nth-child(4){grid-area:statuses}
+.grid>.panel:nth-child(1){display:none}
+.grid>.panel:nth-child(2){display:none}
+.grid>.panel:nth-child(3){display:none}
+.grid>.panel:nth-child(4){display:none}
+.grid>.panel:nth-child(5){grid-area:core}
+.grid>.panel:nth-child(6){grid-area:chart;min-height:470px;transform:translateZ(25px) rotateY(1deg)}
+.grid>.panel:nth-child(7){grid-area:analysis;min-height:470px;transform:translateZ(18px) rotateY(-1deg)}
+.grid>.panel:nth-child(8){grid-area:analysis;display:none}
+.grid>.panel:nth-child(9){grid-area:front1;min-height:210px;transform:translateZ(30px) rotateY(2deg)}
+.grid>.panel:nth-child(10){grid-area:front2;min-height:210px;transform:translateZ(34px)}
+.grid>.panel:nth-child(11){grid-area:plan;min-height:270px}
+.grid>.panel:nth-child(12){grid-area:front3;min-height:210px;display:none}
+.grid>.panel:nth-child(13){grid-area:stats}
+.grid>.panel:nth-child(14){grid-area:diagnostics}
+.chart{height:340px;border:1px solid #31516d;box-shadow:inset 0 0 30px #020811,0 0 22px #36d9ef12;background:linear-gradient(180deg,#071322,#091827)}
+.grid>.panel:nth-child(6) .row b,.grid>.panel:nth-child(7) .row b{font-size:17px;letter-spacing:.4px}
+.grid>.panel:nth-child(6):before{height:3px}
+.grid>.panel:nth-child(7):before{height:3px}
+.grid>.panel:nth-child(9),.grid>.panel:nth-child(10){background:linear-gradient(145deg,#132b3d,#0a1928);border-color:#39718a}
+.grid>.panel:nth-child(9) .metric,.grid>.panel:nth-child(10) .metric{background:#081421;border-color:#25465c}
+.grid>.panel:nth-child(11) .level{background:linear-gradient(145deg,#102238,#091421);border-color:#31516b}
+.actions button,.select,.tab{box-shadow:0 5px 14px #0005}
+.orb{box-shadow:0 0 42px #32d9ed88,inset 0 0 22px #d4ffff55,0 16px 28px #0008}
+.cockpit-caption{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#7eabc1;font-size:10px;letter-spacing:1.3px;margin:0 0 10px}
+.cockpit-caption:after{content:"LIVE MARKET TERMINAL";color:#43d9e8}
+@media(max-width:900px){main{padding:14px}.grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"core" "chart" "analysis" "front1" "front2" "plan" "front3" "stats" "diagnostics";gap:15px}.grid>.panel{transform:none!important;min-height:0}.grid>.panel:nth-child(1),.grid>.panel:nth-child(2),.grid>.panel:nth-child(3),.grid>.panel:nth-child(4),.grid>.panel:nth-child(8),.grid>.panel:nth-child(12){display:none}.chart{height:290px}}
+
 @media(max-width:850px){main{padding:12px}.span3,.span4,.span5,.span6,.span7,.span8{grid-column:span 6}.span12{grid-column:span 12}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.span3,.span4,.span5,.span6,.span7,.span8,.span12{grid-column:span 12}.hero{gap:13px}.orb{flex-basis:82px;height:82px}.value{font-size:20px}.levels{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style></head><body><main>
 <header class="top"><div class="brand">ARAD <em>QUANT</em> AI PRO</div><div class="chip">OURBIT FUTURES · READ ONLY / PAPER MODE</div></header>
 <h1>مرکز هوشمند تحلیل بازار</h1><div class="lead">تشخیص حرکت در ۵ دقیقه · تأیید در ۱۵ دقیقه · زمینه روند در یک ساعت</div>
 <div class="actions"><button id="refreshBtn">↻ به‌روزرسانی بازار</button><button id="analyzeBtn">◎ تحلیل مجدد</button><span id="updatedAt" class="hint">هنوز به‌روزرسانی نشده</span></div>
+<div class="cockpit-caption"><span>ARAD IMMERSIVE TRADING COCKPIT · THREE-SCREEN VIEW</span><span>OURBIT FUTURES · READ ONLY</span></div>
 <div class="grid">
 <section class="panel span3"><div class="label">وضعیت اتصال OURBIT</div><div class="value yellow" id="connection">در حال بررسی…</div><div class="hint" id="connectionHint">بررسی API عمومی بازار</div></section>
 <section class="panel span3"><div class="label" id="tickerLabel">قیمت BTC / USDT</div><div class="value" id="btcPrice">—</div><div class="hint" id="btcChange">منتظر داده واقعی بازار</div></section>
@@ -26,6 +76,7 @@ table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:right
 <section class="panel span4"><b>قدرت خرید و فروش · دفتر سفارش زنده</b><div class="metrics" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><span class="tag">حجم سفارش خرید</span><b id="bidVolume">—</b></div><div class="metric"><span class="tag">حجم سفارش فروش</span><b id="askVolume">—</b></div></div><div class="row hint" style="margin-top:12px"><span id="buyerShare">خریداران: —</span><span id="sellerShare">فروشندگان: —</span></div><div class="bar"><i id="orderImbalance"></i></div><p class="hint" id="orderBookStatus">در انتظار دفتر سفارش عمومی Ourbit Futures</p><p class="hint" id="tradeFlowStatus">جریان معاملات اخیر هنوز دریافت نشده است.</p></section>
 <section class="panel span6"><b>نقشه نقدینگی و سطوح کلیدی</b><div class="metrics"><div class="metric"><span class="tag">حمایت نزدیک</span><b>—</b></div><div class="metric"><span class="tag">مقاومت نزدیک</span><b>—</b></div><div class="metric"><span class="tag">نقدینگی بالا</span><b>—</b></div><div class="metric"><span class="tag">نقدینگی پایین</span><b>—</b></div></div><p class="hint">این سطوح پس از دریافت و پردازش داده‌های معتبر محاسبه می‌شوند.</p></section>
 <section class="panel span6"><b>برنامه معامله آزمایشی · متصل به تحلیل</b><div class="row hint" style="margin-top:12px"><span id="planDirection">جهت: —</span><span id="planRR">ریسک به بازده: —</span></div><div class="levels"><div class="level"><span class="tag">ENTRY</span><b id="planEntry">—</b></div><div class="level"><span class="tag">STOP LOSS</span><b id="planSL">—</b></div><div class="level"><span class="tag">TP1</span><b id="planTP1">—</b></div><div class="level"><span class="tag">TP2</span><b id="planTP2">—</b></div><div class="level"><span class="tag">TP3</span><b id="planTP3">—</b></div><div class="level"><span class="tag">TP4–TP6</span><b id="planTP456">—</b></div></div><p class="hint" id="planStatus">پس از تحلیل نماد انتخابی، فقط در صورت تشکیل فرصت آزمایشی تکمیل می‌شود.</p></section>
+<section class="panel span4"><b>احساسات و مومنتوم بازار</b><div class="metrics" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><span class="tag">جهت کندل‌های اخیر</span><b id="sentimentDirection">—</b></div><div class="metric"><span class="tag">قدرت حرکت</span><b id="sentimentStrength">—</b></div></div><div class="bar"><i id="sentimentBar"></i></div><p class="hint" id="sentimentStatus">احساسات شبکه‌های اجتماعی متصل نیست؛ این بخش فقط مومنتوم کندلی را نشان می‌دهد.</p></section>
 <section class="panel span4"><b>آمار عملکرد سیگنال‌ها</b><div class="metrics" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><span class="tag">نرخ برد</span><b>—</b></div><div class="metric"><span class="tag">بردها</span><b>۰</b></div><div class="metric"><span class="tag">باخت‌ها</span><b>۰</b></div><div class="metric"><span class="tag">سود / زیان</span><b>—</b></div></div><p class="hint">آمار تا زمان ثبت و ارزیابی معاملات آزمایشی خالی می‌ماند.</p></section>
 <section class="panel span8"><b>گزارش سیستم و تشخیص خطا</b><p class="hint" id="diagnostics">وضعیت backend هنوز بررسی نشده است.</p><p class="hint" id="analysisStatus">موتور سیگنال تا زمان اعتبارسنجی داده‌های زنده و آزمون استراتژی غیرفعال است.</p></section>
 </div>
@@ -78,6 +129,17 @@ function drawChart(raw){
  ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle='#e8f2ff88';ctx.lineWidth=1;
  ctx.beginPath();ctx.moveTo(pad,scale(last.c));ctx.lineTo(w-pad,scale(last.c));ctx.stroke();ctx.restore();
  return true;
+}
+function renderCandleSentiment(raw){
+ const a=candleRows(raw).slice(-12);
+ if(a.length<5){document.getElementById('sentimentDirection').textContent='داده ناکافی';document.getElementById('sentimentStrength').textContent='—';document.getElementById('sentimentStatus').textContent='برای سنجش مومنتوم به حداقل ۵ کندل معتبر نیاز است.';return;}
+ let up=0,down=0,body=0;
+ for(const x of a){if(x.close>x.open)up++;else if(x.close<x.open)down++;body+=Math.abs(x.close-x.open)/Math.max(x.open,1e-12);}
+ const total=up+down,score=total?up/total*100:50,dir=score>=60?'متمایل به صعود':score<=40?'متمایل به نزول':'خنثی';
+ document.getElementById('sentimentDirection').textContent=dir;
+ document.getElementById('sentimentStrength').textContent=Math.round(Math.abs(score-50)*2)+' / 100';
+ document.getElementById('sentimentBar').style.width=score.toFixed(1)+'%';
+ document.getElementById('sentimentStatus').textContent='پروکسی مومنتوم ۱۲ کندل بسته‌شده: '+up+' کندل صعودی و '+down+' کندل نزولی. این شاخص احساسات اجتماعی یا داده قطعی بازار نیست.';
 }
 function renderOrderBook(raw,tradeRaw){
  const d=unwrap(raw)||{},bids=Array.isArray(d.bids)?d.bids:[],asks=Array.isArray(d.asks)?d.asks:[];
@@ -190,7 +252,7 @@ async function refreshMarket(){
   }
   try{
    const c=await getJson('/api/market/candles?symbol='+encodeURIComponent(symbol)+'&interval='+activeInterval);
-   const ok=drawChart(c);updateMarketPanels(c,tickerItem);
+   const ok=drawChart(c);updateMarketPanels(c,tickerItem);renderCandleSentiment(c);
    try{const [depth,deals]=await Promise.all([getJson('/api/market/depth?symbol='+encodeURIComponent(symbol)+'&limit=20'),getJson('/api/market/deals?symbol='+encodeURIComponent(symbol))]);renderOrderBook(depth.data||depth,deals.data||deals);}catch(bookErr){document.getElementById('orderBookStatus').textContent='دریافت دفتر سفارش ناموفق: '+bookErr.message;document.getElementById('tradeFlowStatus').textContent='داده جریان معاملات موجود نیست.';}
    const parsedCount=Number(c.parsed_closed_candles??candleRows(c).length),rawCount=Number(c.raw_rows??candleRows(c).length);
    document.getElementById('chartStatus').textContent='تشخیص کندل OURBIT · خام: '+rawCount+' ردیف · معتبر و بسته: '+parsedCount+' · '+symbol+' · '+activeInterval+(ok?' · نمودار فعال':' · ساختار کندل نامعتبر');
