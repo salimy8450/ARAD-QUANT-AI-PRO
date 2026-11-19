@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARAD QUANT AI PRO</title>
+<style>
+:root{color-scheme:dark;--bg:#070c16;--panel:#101a2b;--line:#263650;--muted:#91a3bd;--cyan:#42d9e8;--green:#3cdb91;--red:#ff637d;--gold:#f4c66a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -15%,#1b3654 0,#070c16 58%);color:#edf5ff;font:14px Inter,system-ui,Arial,sans-serif}
+main{max-width:1280px;margin:auto;padding:22px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-size:20px;font-weight:850;letter-spacing:1.7px}.brand em{font-style:normal;color:var(--cyan)}.chip{border:1px solid var(--line);padding:8px 12px;border-radius:99px;color:var(--muted);font-size:11px;letter-spacing:.7px}
+h1{font-size:clamp(25px,4vw,43px);margin:34px 0 7px;letter-spacing:-1px}.lead{color:var(--muted);max-width:720px;line-height:1.65}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:24px 0}.panel{background:linear-gradient(145deg,#142138eF,#0d1626f5);border:1px solid var(--line);border-radius:17px;padding:17px;min-width:0;box-shadow:0 12px 35px #0002}
+.label{color:var(--muted);font-size:10px;letter-spacing:1.2px}.value{font-size:22px;font-weight:800;margin:9px 0 4px}.hint{color:var(--muted);font-size:12px;line-height:1.5}.wide{grid-column:span 2}.hero{grid-column:span 2;grid-row:span 2;text-align:center;display:flex;flex-direction:column;justify-content:center;min-height:300px}
+.orb{height:138px;width:138px;border-radius:50%;margin:0 auto 22px;background:radial-gradient(circle at 34% 28%,#e7ffff,#61e8ef 13%,#2187bd 39%,#172d59 63%,#0b1424 75%);box-shadow:0 0 28px #32d9ed66, inset 0 0 22px #d4ffff55;animation:pulse 3.2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.045);box-shadow:0 0 65px #32d9ed99,inset 0 0 25px #d4ffff66}}
+.green{color:var(--green)}.yellow{color:var(--gold)}.red{color:var(--red)}.statusdot{display:inline-block;width:7px;height:7px;background:var(--gold);border-radius:50%;margin-right:7px}
+.track{height:7px;border-radius:8px;background:#263750;overflow:hidden;margin-top:13px}.track span{display:block;width:0;height:100%;background:linear-gradient(90deg,#237fae,var(--cyan))}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.tab{border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--muted);font-size:11px}
+table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:left;padding:11px 7px;border-bottom:1px solid #25334a;font-size:12px}th{color:var(--muted);font-weight:500}
+footer{margin:20px 2px;color:var(--muted);font-size:11px;line-height:1.6}
+@media(max-width:800px){main{padding:13px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.panel{padding:13px}.hero{min-height:245px}.orb{width:105px;height:105px}.value{font-size:19px}.wide{grid-column:span 2}}
+@media(max-width:390px){.grid{grid-template-columns:1fr}.wide,.hero{grid-column:span 1}}
+</style></head>
+<body><main>
+<header class="top"><div class="brand">ARAD <em>QUANT</em> AI PRO</div><div class="chip">OURBIT FUTURES&nbsp; / &nbsp;PAPER MODE</div></header>
+<h1>Quant Intelligence Terminal</h1><div class="lead">Multi-timeframe market research · 5m impulse detection · 15m confirmation · 1h market context</div>
+<div class="grid">
+<section class="panel"><div class="label">EXCHANGE STATUS</div><div class="value yellow" id="connection">Checking…</div><div class="hint" id="connectionHint">Verifying public Futures feed</div></section>
+<section class="panel"><div class="label">ACTIVE SIGNALS</div><div class="value">0</div><div class="hint">Only validated signals will appear</div></section>
+<section class="panel"><div class="label">ENGINE MODE</div><div class="value">Research</div><div class="hint">No order execution</div></section>
+<section class="panel"><div class="label">PRIVATE API KEY</div><div class="value green">Not needed</div><div class="hint">For public market data endpoints</div></section>
+<section class="panel hero"><div class="orb"></div><div class="label">ARAD QUANT CORE</div><div class="value">Intelligence Engine</div><div class="hint" id="coreStatus">Waiting for verified market data</div><div class="track"><span></span></div></section>
+<section class="panel wide"><div class="row"><b>Market Signal Scanner</b><span class="chip">5m / 15m / 1h</span></div><table><thead><tr><th>CONTRACT</th><th>BIAS</th><th>ENTRY</th><th>STATUS</th></tr></thead><tbody><tr><td colspan="4" class="hint">No market feed connected — no simulated signals shown.</td></tr></tbody></table></section>
+<section class="panel"><div class="label">BUY / SELL PRESSURE</div><div class="value">—</div><div class="hint">Requires live trades and order-book data</div></section>
+<section class="panel"><div class="label">LIQUIDITY MAP</div><div class="value">—</div><div class="hint">Awaiting verified order-book feed</div></section>
+<section class="panel wide"><b>Risk & Trade Planning</b><div class="tabs"><span class="tab">STRUCTURAL STOP</span><span class="tab">TP1–TP6</span><span class="tab">RISK / REWARD</span><span class="tab">BREAKEVEN</span></div><p class="hint">Trade levels will be calculated only after a valid setup is detected. Nothing is sent to an exchange.</p></section>
+<section class="panel wide"><b>System Diagnostics</b><p class="hint" id="diagnostics">Backend status not checked yet.</p></section>
+</div>
+<footer>Research and paper mode only. No guaranteed win rate. Validate with historical data, realistic fees/slippage and forward paper trading before considering real funds. Never publish private API credentials.</footer>
+</main>
+<script>
+(async()=>{try{const r=await fetch('/api/status');const s=await r.json();const ok=!!s.enabled;document.getElementById('connection').textContent=ok?'Configured':'Not connected';document.getElementById('connection').className='value '+(ok?'green':'yellow');document.getElementById('connectionHint').textContent=ok?'Feed configured; connectivity test pending':'Public Futures feed awaits verified host configuration';document.getElementById('coreStatus').textContent=ok?'Feed configured; waiting for validated candles':'No verified market data — signals disabled';document.getElementById('diagnostics').textContent='Backend online · '+s.exchange+' · Public feed '+(ok?'configured':'disabled')+' · Private key not required · Trading disabled';}catch(e){document.getElementById('connection').textContent='Backend offline';document.getElementById('diagnostics').textContent='Open through the FastAPI service to enable dashboard status.';}})();
+</script></body></html>
