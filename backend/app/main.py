@@ -78,12 +78,19 @@ async def market_candles(
 async def market_scan(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=40),
+    symbols: str | None = Query(default=None, max_length=2000),
 ):
     """Scan a bounded page of the full futures universe to stay within serverless limits."""
     try:
-        universe = await exchange.market_universe()
-        contracts = universe.get("scan_candidates", [])
-        page = contracts[offset:offset + limit]
+        if symbols:
+            contracts = [{"symbol": x.strip().upper()} for x in symbols.split(",") if x.strip()]
+            total = len(contracts)
+            page = contracts
+        else:
+            universe = await exchange.market_universe()
+            contracts = universe.get("scan_candidates", [])
+            total = len(contracts)
+            page = contracts[offset:offset + limit]
         semaphore = asyncio.Semaphore(4)
         scanned = 0
         errors = 0
@@ -126,11 +133,11 @@ async def market_scan(
         next_offset = offset + len(page)
         return {
             "status": "completed",
-            "universe_total": len(contracts),
+            "universe_total": total,
             "offset": offset,
             "limit": limit,
             "next_offset": next_offset if next_offset < len(contracts) else None,
-            "done": next_offset >= len(contracts),
+            "done": next_offset >= total,
             "scanned_5m": scanned,
             "candidates": len(candidates),
             "data_errors": errors,
