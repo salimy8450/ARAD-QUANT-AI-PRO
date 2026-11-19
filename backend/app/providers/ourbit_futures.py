@@ -204,6 +204,15 @@ class OurbitFutures:
             return best_payload
         raise RuntimeError("Ourbit kline unavailable on all hosts: " + " | ".join(errors))
 
+    async def depth(self, symbol: str, limit: int = 20) -> Any:
+        """Public Futures order-book depth (read-only)."""
+        limit = max(1, min(int(limit), 100))
+        return await self._get(f"/api/v1/contract/depth_commits/{symbol.upper()}/{limit}")
+
+    async def deals(self, symbol: str) -> Any:
+        """Recent public Futures trades for order-flow context."""
+        return await self._get(f"/api/v1/contract/deals/{symbol.upper()}")
+
     async def check_connection(self) -> dict[str, Any]:
         started = time.perf_counter()
         try:
