@@ -217,7 +217,7 @@ h1{font-size:clamp(23px,3.5vw,36px);text-shadow:0 0 22px #00cfff22}
 <section class="panel span6"><b>برنامه معامله آزمایشی · متصل به تحلیل</b><div class="row hint" style="margin-top:12px"><span id="planDirection">جهت: —</span><span id="planRR">ریسک به بازده: —</span></div><div class="levels"><div class="level"><span class="tag">ENTRY</span><b id="planEntry">—</b></div><div class="level"><span class="tag">STOP LOSS</span><b id="planSL">—</b></div><div class="level"><span class="tag">TP1</span><b id="planTP1">—</b></div><div class="level"><span class="tag">TP2</span><b id="planTP2">—</b></div><div class="level"><span class="tag">TP3</span><b id="planTP3">—</b></div><div class="level"><span class="tag">TP4–TP6</span><b id="planTP456">—</b></div></div><p class="hint" id="planStatus">پس از تحلیل نماد انتخابی، فقط در صورت تشکیل فرصت آزمایشی تکمیل می‌شود.</p></section>
 <section class="panel span4"><b>احساسات و مومنتوم بازار</b><div class="metrics" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><span class="tag">جهت کندل‌های اخیر</span><b id="sentimentDirection">—</b></div><div class="metric"><span class="tag">قدرت حرکت</span><b id="sentimentStrength">—</b></div></div><div class="bar"><i id="sentimentBar"></i></div><p class="hint" id="sentimentStatus">احساسات شبکه‌های اجتماعی متصل نیست؛ این بخش فقط مومنتوم کندلی را نشان می‌دهد.</p></section>
 <section class="panel span4"><b>آمار عملکرد سیگنال‌ها</b><div class="metrics" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><span class="tag">نرخ برد</span><b>—</b></div><div class="metric"><span class="tag">بردها</span><b>۰</b></div><div class="metric"><span class="tag">باخت‌ها</span><b>۰</b></div><div class="metric"><span class="tag">سود / زیان</span><b>—</b></div></div><p class="hint">آمار تا زمان ثبت و ارزیابی معاملات آزمایشی خالی می‌ماند.</p></section>
-<section class="panel span8"><b>گزارش سیستم و تشخیص خطا</b><p class="hint" id="diagnostics">وضعیت backend هنوز بررسی نشده است.</p><p class="hint" id="analysisStatus">موتور سیگنال تا زمان اعتبارسنجی داده‌های زنده و آزمون استراتژی غیرفعال است.</p></section>
+<section class="panel span8"><b>گزارش سیستم و تشخیص خطا</b><p class="hint" id="diagnostics">وضعیت backend هنوز بررسی نشده است.</p><p class="hint" id="analysisStatus">اسکنر پژوهشی فعال است: ۵ دقیقه تشخیص حرکت، ۱۵ دقیقه تأیید کمکی و ۱ ساعت فقط زمینه روند؛ خروجی‌ها آزمایشی‌اند و هنوز اثبات سودآوری نشده‌اند.</p></section>
 </div>
 <div class="room-floor"><span>ARAD QUANT AI PRO</span><span>SIMULATION FLOOR · NO LIVE ORDERS</span></div></section>
 <footer>حالت تحقیقاتی و آزمایشی؛ بدون تضمین سود و بدون اجرای سفارش. پیش از استفاده مالی، داده تاریخی، کارمزد، لغزش قیمت و عملکرد آزمایشی باید بررسی شوند. کلید خصوصی صرافی را در این صفحه یا GitHub وارد نکنید.</footer>
@@ -404,27 +404,27 @@ async function refreshMarket(){
   marketRefreshBusy=false;b.disabled=false;b.textContent='↻ به‌روزرسانی بازار';
  }
 }
+let scanBusy=false;
 async function analyzeAgain(){
+ if(scanBusy)return;
+ scanBusy=true;
  const b=document.getElementById('analyzeBtn'),body=document.getElementById('scannerRows');
- const requested=['BTC_USDT','ETH_USDT','SOL_USDT','DOGE_USDT','XRP_USDT'];
+ let requested=[];
  b.disabled=true;b.textContent='در حال تحلیل ۵ ارز…';
  body.innerHTML='<tr><td colspan="5" class="hint">در حال دریافت کندل‌های واقعی و تحلیل تایم‌فریم‌ها…</td></tr>';
  let errors=0,analysed=0;
  try{
   const u=await getJson('/api/market/universe');
-  const listed=new Set((u.scan_candidates||u.active_contracts||[]).map(x=>String(x.symbol||'').toUpperCase()));
-  const symbols=requested.filter(x=>listed.has(x));
-  const missing=requested.filter(x=>!listed.has(x));
-  if(!symbols.length)throw new Error('هیچ‌یک از ۵ نماد انتخابی در فهرست قراردادهای قابل‌اسکن Ourbit پیدا نشد');
-  const url='/api/market/scan?symbols='+encodeURIComponent(symbols.join(','));
+  const contracts=Array.isArray(u.active_contracts)?u.active_contracts:[];
+  if(!contracts.length)throw new Error('قرارداد فعال از Ourbit دریافت نشد؛ وضعیت اتصال و فهرست قراردادها را بررسی کنید.');
+  const volumeOf=x=>{const t=x.ticker||{};for(const k of ['amount24','turnover24','quoteVolume','volume24','vol24','volume','vol']){const n=Number(t[k]);if(Number.isFinite(n)&&n>0)return n;}return 0;};
+  contracts.sort((a,b)=>volumeOf(b)-volumeOf(a));
+  requested=contracts.slice(0,20).map(x=>String(x.symbol||'').toUpperCase()).filter(Boolean);
+  if(!requested.length)throw new Error('نماد قابل اسکن در فهرست قراردادهای فعال پیدا نشد.');
+  const url='/api/market/scan?symbols='+encodeURIComponent(requested.join(','));
   const scan=await getJson(url),rows=scan.results||[];
   errors=scan.data_errors||0;analysed=scan.scanned_5m||0;
   body.innerHTML='';
-  for(const sym of missing){
-   const tr=document.createElement('tr');
-   [''+sym,'—','—','—','در فهرست قراردادهای فعال پیدا نشد'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});
-   body.appendChild(tr);
-  }
   for(const x of rows){
    const f5=x.five_min||{},sig=x.signal||{},direction=sig.direction||f5.direction||'—';
    const price=sig.entry??f5.close??null;
@@ -443,17 +443,17 @@ async function analyzeAgain(){
   const selectedCandidate=rows.find(x=>String(x.symbol).toUpperCase()===selected&&x.status==='candidate')||null;
   renderTradePlan(selectedCandidate,selected);
   rows.filter(x=>x.status==='candidate'&&x.signal).forEach(x=>addPaperCandidate(x,x.symbol));
-  document.getElementById('analysisStatus').textContent='آزمایش تمام شد: '+analysed+' ارز از '+requested.length+' ارز انتخابی بررسی شد · فرصت احتمالی: '+candidates+' · خطای داده: '+errors+'. '+(missing.length?'نمادهای پیدا‌نشده: '+missing.join(', '):'');
+  document.getElementById('analysisStatus').textContent='اسکن خودکار بازار: '+analysed+' قرارداد فعال از بین '+requested.length+' نماد پُرحجم بررسی شد · فرصت آزمایشی: '+candidates+' · خطای داده: '+errors+' · اسکن بعدی حدود ۵ دقیقه دیگر.';
   document.getElementById('coreStatus').textContent='تحلیل واقعی کندل‌های بسته‌شده انجام شد؛ نتایج آزمایشی‌اند و هنوز اعتبارسنجی سودآوری نشده‌اند.';
  }catch(e){
   document.getElementById('analysisStatus').textContent='تحلیل انجام نشد: '+e.message;
   body.innerHTML='<tr><td colspan="5" class="hint">تحلیل ناموفق بود: '+e.message+'</td></tr>';
- }finally{b.disabled=false;b.textContent='◎ تحلیل مجدد'}
+ }finally{scanBusy=false;b.disabled=false;b.textContent='◎ تحلیل مجدد'}
 }
 updatePaperStats();
 document.getElementById('refreshBtn').addEventListener('click',refreshMarket);document.getElementById('analyzeBtn').addEventListener('click',analyzeAgain);
 document.querySelectorAll('[data-interval]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-interval]').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeInterval=b.dataset.interval;refreshMarket()}));
-document.getElementById('symbolSelect').addEventListener('change',refreshMarket);refreshMarket();setInterval(refreshMarket,5000);
+document.getElementById('symbolSelect').addEventListener('change',refreshMarket);refreshMarket();analyzeAgain();setInterval(refreshMarket,5000);setInterval(analyzeAgain,300000);
 </script>
 <script>
 (function initAradNeuralSphere(){
