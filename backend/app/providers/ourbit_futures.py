@@ -126,6 +126,25 @@ class OurbitFutures:
             "read_only": True,
         }
 
+    @staticmethod
+    def _kline_count(payload: Any) -> int:
+        """Count returned candle rows across Ourbit's documented wrapper shapes."""
+        node = payload
+        for _ in range(6):
+            if isinstance(node, list):
+                return len(node)
+            if not isinstance(node, dict):
+                return 0
+            child = None
+            for key in ("data", "result", "list", "rows", "items", "klines"):
+                if key in node:
+                    child = node[key]
+                    break
+            if child is None:
+                return 1 if any(k in node for k in ("open", "o", "time", "timestamp")) else 0
+            node = child
+        return 0
+
     async def candles(
         self,
         symbol: str,
@@ -134,7 +153,8 @@ class OurbitFutures:
         end_ms: int | None = None,
     ) -> Any:
         # Ourbit V1 kline endpoint uses millisecond start/end bounds.
-        # Request enough history for charting and the 30+ closed-bar indicators.
+        # Request 150 bars; if a host returns a successful but truncated response,
+        # try the alternate Ourbit host instead of accepting one candle as valid history.
         interval_minutes = {
             "Min1": 1, "Min5": 5, "Min15": 15, "Min30": 30,
             "Min60": 60, "Hour4": 240, "Hour8": 480,
@@ -150,7 +170,39 @@ class OurbitFutures:
         params: dict[str, Any] = {
             "interval": interval, "start": start_ms, "end": end_ms
         }
-        return await self._get(f"/api/v1/contract/kline/{symbol}", params)
+        errors: list[str] = []
+        best_payload: Any = None
+        best_count = -1
+        limits = httpx.Limits(max_connections=4, max_keepalive_connections=2)
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(self.timeout, connect=min(self.timeout, 5.0)),
+            follow_redirects=True,
+            limits=limits,
+        ) as client:
+            for host in self.base_urls:
+                try:
+                    response = await client.get(
+                        f"{host}/api/v1/contract/kline/{symbol}", params=params
+                    )
+                    response.raise_for_status()
+                    payload = response.json()
+                    if isinstance(payload, dict):
+                        if payload.get("success") is False:
+                            raise RuntimeError(f"Ourbit API rejected kline request: {payload}")
+                        if payload.get("code") not in (None, 0, 200, "0", "200"):
+                            raise RuntimeError(f"Ourbit API returned kline code: {payload.get('code')}")
+                    count = self._kline_count(payload)
+                    if count > best_count:
+                        best_payload, best_count = payload, count
+                        self.base_url = host
+                    if count >= 30:
+                        return payload
+                    errors.append(f"{host}: only {count} candle rows")
+                except (httpx.HTTPError, OSError, RuntimeError, ValueError) as exc:
+                    errors.append(f"{host}: {str(exc)[:160]}")
+        if best_payload is not None:
+            return best_payload
+        raise RuntimeError("Ourbit kline unavailable on all hosts: " + " | ".join(errors))
 
     async def check_connection(self) -> dict[str, Any]:
         started = time.perf_counter()
