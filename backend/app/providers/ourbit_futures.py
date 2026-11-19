@@ -60,8 +60,70 @@ class OurbitFutures:
         return await self._get("/api/v1/contract/detail")
 
     async def ticker(self, symbol: str | None = None) -> Any:
+        # Omitting symbol requests the exchange-wide ticker list.
         params = {"symbol": symbol} if symbol else None
         return await self._get("/api/v1/contract/ticker", params)
+
+    async def market_universe(self) -> dict[str, Any]:
+        """Return every active futures contract matched with available ticker data."""
+        contracts_payload, ticker_payload = await __import__("asyncio").gather(
+            self.contracts(), self.ticker()
+        )
+
+        def records(payload: Any) -> list[dict[str, Any]]:
+            node = payload
+            for _ in range(4):
+                if isinstance(node, list):
+                    return [x for x in node if isinstance(x, dict)]
+                if not isinstance(node, dict):
+                    return []
+                next_node = None
+                for key in ("data", "result", "list", "rows", "items", "contracts", "tickers"):
+                    if key in node:
+                        next_node = node[key]
+                        break
+                if next_node is None:
+                    return [node] if node.get("symbol") else []
+                node = next_node
+            return []
+
+        contract_rows = records(contracts_payload)
+        ticker_rows = records(ticker_payload)
+        ticker_by_symbol = {
+            str(row.get("symbol", "")).upper(): row
+            for row in ticker_rows if row.get("symbol")
+        }
+        active, inactive, unknown = [], [], []
+        for contract in contract_rows:
+            symbol = str(contract.get("symbol") or contract.get("contractCode") or "").upper()
+            if not symbol:
+                continue
+            state = str(contract.get("state") or contract.get("status") or contract.get("contractStatus") or "").upper()
+            row = {
+                "symbol": symbol,
+                "state": state or "UNKNOWN",
+                "ticker": ticker_by_symbol.get(symbol),
+                "contract": contract,
+            }
+            if state in {"ENABLED", "TRADING", "1", "ONLINE", "OPEN"}:
+                active.append(row)
+            elif state in {"DISABLED", "OFFLINE", "CLOSED", "SUSPENDED", "0"}:
+                inactive.append(row)
+            else:
+                unknown.append(row)
+        # Unknown status is exposed separately, never silently treated as tradable.
+        return {
+            "contracts_total": len(contract_rows),
+            "active_count": len(active),
+            "inactive_count": len(inactive),
+            "unknown_status_count": len(unknown),
+            "tickers_received": len(ticker_rows),
+            "active_contracts": active,
+            "unknown_status_contracts": unknown,
+            "inactive_contracts": inactive,
+            "source": "Ourbit Futures public contract/detail + contract/ticker",
+            "read_only": True,
+        }
 
     async def candles(
         self,
