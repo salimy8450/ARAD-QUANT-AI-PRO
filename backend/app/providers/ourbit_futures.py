@@ -128,19 +128,21 @@ class OurbitFutures:
 
     @staticmethod
     def _kline_count(payload: Any) -> int:
-        """Count returned candle rows across Ourbit's documented wrapper shapes."""
+        """Count rows in row-based and columnar Ourbit kline responses."""
         node = payload
         for _ in range(6):
             if isinstance(node, list):
                 return len(node)
             if not isinstance(node, dict):
                 return 0
-            child = None
-            for key in ("data", "result", "list", "rows", "items", "klines"):
-                if key in node:
-                    child = node[key]
-                    break
+            child = next((node[k] for k in ("data", "result", "list", "rows", "items", "klines") if k in node), None)
             if child is None:
+                lengths = [
+                    len(node[k]) for k in ("open", "opens", "o", "close", "closes", "c")
+                    if isinstance(node.get(k), (list, tuple))
+                ]
+                if lengths:
+                    return min(lengths)
                 return 1 if any(k in node for k in ("open", "o", "time", "timestamp")) else 0
             node = child
         return 0
