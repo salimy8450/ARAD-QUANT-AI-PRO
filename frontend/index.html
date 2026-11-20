@@ -296,7 +296,8 @@ function candleRows(raw){
  const num=x=>{const n=Number(x);return Number.isFinite(n)?n:NaN};
  if(node&&!Array.isArray(node)&&typeof node==='object'){
   const col=(...keys)=>{for(const k of keys)if(Array.isArray(node[k]))return node[k];return null};
-  const o=col('open','opens','o'),h=col('high','highs','h'),l=col('low','lows','l'),cl=col('close','closes','c'),v=col('vol','volume','volumes','v','amount','turnover','realAmount'),tm=col('time','times','timestamp','timestamps','t','id');
+  const o=col('open','opens','o','realOpen'),h=col('high','highs','h','realHigh'),l=col('low','lows','l','realLow'),cl=col('close','closes','c','realClose'),v=col('vol','volume','volumes','v','amount','turnover','realAmount'),tm=col('time','times','timestamp','timestamps','t','id');
+  if(v&&!v.length)v=null;if(tm&&!tm.length)tm=null;
   if(o&&h&&l&&cl){
    let n=Math.min(o.length,h.length,l.length,cl.length);if(v)n=Math.min(n,v.length);if(tm)n=Math.min(n,tm.length);
    const out=[];
