@@ -296,7 +296,7 @@ function candleRows(raw){
  const num=x=>{const n=Number(x);return Number.isFinite(n)?n:NaN};
  if(node&&!Array.isArray(node)&&typeof node==='object'){
   const col=(...keys)=>{for(const k of keys)if(Array.isArray(node[k]))return node[k];return null};
-  const o=col('open','opens','o'),h=col('high','highs','h'),l=col('low','lows','l'),cl=col('close','closes','c'),v=col('vol','volume','volumes','v'),tm=col('time','times','timestamp','timestamps','t','id');
+  const o=col('open','opens','o'),h=col('high','highs','h'),l=col('low','lows','l'),cl=col('close','closes','c'),v=col('vol','volume','volumes','v','amount','turnover','realAmount'),tm=col('time','times','timestamp','timestamps','t','id');
   if(o&&h&&l&&cl){
    let n=Math.min(o.length,h.length,l.length,cl.length);if(v)n=Math.min(n,v.length);if(tm)n=Math.min(n,tm.length);
    const out=[];
@@ -316,7 +316,7 @@ function candleRows(raw){
    const valid=x=>Number.isFinite(x.v)&&x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)&&x.h>=x.l&&x.l>0;
    return valid(legacy)?legacy:(valid(standard)?standard:null);
   }
-  const x={o:num(val(o,['open','o'])),h:num(val(o,['high','h'])),l:num(val(o,['low','l'])),c:num(val(o,['close','c','lastPrice'])),v:num(val(o,['volume','vol','v'])||0)};
+  const x={o:num(val(o,['open','o'])),h:num(val(o,['high','h'])),l:num(val(o,['low','l'])),c:num(val(o,['close','c','lastPrice'])),v:num(val(o,['volume','vol','v','amount','turnover','realAmount'])||0)};
   return [x.o,x.h,x.l,x.c].every(Number.isFinite)&&x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)&&x.l>0?x:null;
  }).filter(Boolean);
 }
