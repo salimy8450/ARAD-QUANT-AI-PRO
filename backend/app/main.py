@@ -180,25 +180,25 @@ async def market_scan(
 
 @app.get("/api/signals")
 async def signals():
-    # Universe discovery is real market coverage, not a trade signal.
+    """Return current research candidates from the same read-only multi-timeframe scanner."""
     try:
-        universe = await exchange.market_universe()
+        scan = await market_scan(offset=0, limit=20, symbols=None)
+        candidates = [
+            {"symbol": row.get("symbol"), **(row.get("signal") or {}),
+             "score": row.get("score"), "context_1h": row.get("context_1h"),
+             "status": row.get("status"), "label": row.get("label")}
+            for row in scan.get("results", [])
+            if row.get("status") == "candidate" and row.get("signal")
+        ]
         return {
             "status": "paper_only",
-            "signals": [],
-            "universe": {
-                "contracts_total": universe["contracts_total"],
-                "active_count": universe["active_count"],
-                "inactive_count": universe["inactive_count"],
-                "unknown_status_count": universe["unknown_status_count"],
-                "tickers_received": universe["tickers_received"],
-            },
-            "message": "All active contracts are discovered. Signal generation remains disabled until candle formats, multi-timeframe rules, and paper-test results are validated.",
+            "signals": candidates,
+            "scanned": scan.get("scanned_5m", 0),
+            "universe_total": scan.get("universe_total", 0),
+            "data_errors": scan.get("data_errors", 0),
+            "method": scan.get("method"),
+            "note": "Research candidates only; not validated trading signals. No orders are placed."
         }
     except Exception as exc:
-        return {
-            "status": "market_unavailable",
-            "signals": [],
-            "universe": None,
-            "message": f"Could not load the full futures universe: {str(exc)[:250]}",
-        }
+        return {"status": "market_unavailable", "signals": [],
+                "message": f"Could not calculate research candidates: {str(exc)[:250]}"}
