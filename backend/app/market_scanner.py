@@ -49,8 +49,12 @@ def parse_candles(payload: Any) -> list[dict[str, float]]:
         highs = column("high", "highs", "h")
         lows = column("low", "lows", "l")
         closes = column("close", "closes", "c")
-        volumes = column("vol", "volume", "volumes", "v", "amount", "turnover")
+        volumes = column("vol", "volume", "volumes", "v", "amount", "turnover", "realAmount")
         times = column("time", "times", "timestamp", "timestamps", "t", "id")
+        if volumes is not None and len(volumes) == 0:
+            volumes = None
+        if times is not None and len(times) == 0:
+            times = None
         if all(x is not None for x in (opens, highs, lows, closes)):
             count = min(len(opens), len(highs), len(lows), len(closes))
             if volumes is not None:
