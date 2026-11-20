@@ -145,12 +145,6 @@ async def market_scan(
                     if not f5.get("ready"):
                         return {"symbol": symbol, "status": "insufficient_data",
                                 "label": "داده ۵دقیقه ناکافی", "bars_5m": len(candles5)}
-                    direction = f5.get("direction")
-                    preliminary = (direction != "NEUTRAL" and
-                                   (f5.get("volume_ratio", 0) >= 1.05 or f5.get("breakout20")))
-                    if not preliminary:
-                        return {"symbol": symbol, "status": "no_setup",
-                                "label": "فعلاً بدون شرایط ورود", "five_min": f5}
                     raw15, raw60 = await asyncio.gather(
                         exchange.candles(symbol, "Min15"),
                         exchange.candles(symbol, "Min60"),
