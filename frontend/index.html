@@ -366,17 +366,28 @@ function renderCandleSentiment(raw){
  document.getElementById('sentimentBar').style.width=score.toFixed(1)+'%';
  document.getElementById('sentimentStatus').textContent='پروکسی مومنتوم ۱۲ کندل بسته‌شده: '+up+' کندل صعودی و '+down+' کندل نزولی. این شاخص احساسات اجتماعی یا داده قطعی بازار نیست.';
 }
+function findOrderBook(raw){
+ const seen=new Set();let found=null;
+ function walk(x,depth){
+  if(!x||typeof x!=='object'||depth>6||seen.has(x)||found)return;
+  seen.add(x);
+  if(!Array.isArray(x)&&(Array.isArray(x.bids)||Array.isArray(x.asks))){found=x;return;}
+  if(Array.isArray(x)){for(const v of x)walk(v,depth+1);return;}
+  for(const k of ['data','result','tick','book','depth','list','rows','items'])if(x[k]!==undefined)walk(x[k],depth+1);
+ }
+ walk(raw,0);return found||{};
+}
 function renderOrderBook(raw,tradeRaw){
- const d=unwrap(raw)||{},bids=Array.isArray(d.bids)?d.bids:[],asks=Array.isArray(d.asks)?d.asks:[];drawDepthChart(raw);
- const qty=x=>Number(Array.isArray(x)?x[1]:(x.quantity??x.qty??x.size??0))||0;
+ const d=findOrderBook(raw),bids=Array.isArray(d.bids)?d.bids:[],asks=Array.isArray(d.asks)?d.asks:[];drawDepthChart(d);
+ const qty=x=>Number(Array.isArray(x)?x[1]:(x.quantity??x.trade_quantity??x.qty??x.size??x.vol??x.volume??x.amount??0))||0;
  const bid=bids.reduce((s,x)=>s+qty(x),0),ask=asks.reduce((s,x)=>s+qty(x),0),total=bid+ask;
  document.getElementById('bidVolume').textContent=fmt(bid);
  document.getElementById('askVolume').textContent=fmt(ask);
  if(total>0){const bp=bid/total*100,ap=100-bp;document.getElementById('buyerShare').textContent='خریداران: '+bp.toFixed(1)+'٪';document.getElementById('sellerShare').textContent='فروشندگان: '+ap.toFixed(1)+'٪';document.getElementById('orderImbalance').style.width=bp.toFixed(1)+'%';document.getElementById('orderBookStatus').textContent='دفتر سفارش دریافت شد · '+bids.length+' سطح خرید و '+asks.length+' سطح فروش';}
- else document.getElementById('orderBookStatus').textContent='ساختار دفتر سفارش خالی یا نامعتبر است؛ نسبت خرید/فروش قابل محاسبه نیست.';
- const trades=rowsOf(tradeRaw);let buy=0,sell=0;
- for(const t of trades){const side=String(val(t,['side','trade_type','type','takerSide'])||'').toUpperCase(),q=Number(val(t,['quantity','qty','vol','amount'])||0);if(['BUY','BID','BUYER'].includes(side))buy+=q;else if(['SELL','ASK','SELLER'].includes(side))sell+=q;}
- document.getElementById('tradeFlowStatus').textContent=trades.length?'معاملات اخیر: '+trades.length+' ردیف · حجم خرید '+fmt(buy)+' / حجم فروش '+fmt(sell):'داده معاملات اخیر در پاسخ API موجود نیست.';
+ else document.getElementById('orderBookStatus').textContent='پاسخ API دریافت شد اما آرایه bids/asks یا حجم معتبر پیدا نشد.';
+ const trades=rowsOf(tradeRaw);let buy=0,sell=0,valid=0;
+ for(const t of trades){const side=String(val(t,['side','trade_type','type','takerSide'])||'').toUpperCase(),q=Number(val(t,['trade_quantity','quantity','qty','vol','amount'])||0);if(!Number.isFinite(q)||q<=0)continue;if(['BUY','BID','BUYER'].includes(side)){buy+=q;valid++;}else if(['SELL','ASK','SELLER'].includes(side)){sell+=q;valid++;}}
+ document.getElementById('tradeFlowStatus').textContent=trades.length?'معاملات اخیر: '+trades.length+' ردیف معتبر جهت‌دار: '+valid+' · حجم خرید '+fmt(buy)+' / حجم فروش '+fmt(sell):'پاسخ معاملات اخیر خالی است یا داده‌ای برنگردانده است.';
 }
 function renderTradePlan(x,symbol){
  const sig=x&&x.signal,t=sig?(sig.targets||[]):[];
@@ -473,7 +484,8 @@ async function refreshMarket(){
    const ok=drawChart(c);drawMiniSeries('timingChart',c);drawMiniSeries('modelChart',c);updateMarketPanels(c,tickerItem);renderCandleSentiment(c);
    try{const [depth,deals]=await Promise.all([getJson('/api/market/depth?symbol='+encodeURIComponent(symbol)+'&limit=20'),getJson('/api/market/deals?symbol='+encodeURIComponent(symbol))]);renderOrderBook(depth.data||depth,deals.data||deals);}catch(bookErr){drawDepthChart([]);document.getElementById('orderBookStatus').textContent='دریافت دفتر سفارش ناموفق: '+bookErr.message;document.getElementById('tradeFlowStatus').textContent='داده جریان معاملات موجود نیست.';}
    const parsedCount=Number(c.parsed_closed_candles??candleRows(c).length),rawCount=Number(c.raw_rows??candleRows(c).length);
-   document.getElementById('chartStatus').textContent='تشخیص کندل OURBIT · خام: '+rawCount+' ردیف · معتبر و بسته: '+parsedCount+' · '+symbol+' · '+activeInterval+(ok?' · نمودار فعال':' · ساختار کندل نامعتبر');
+   const sample=c.first_row_sample?JSON.stringify(c.first_row_sample).slice(0,180):'نمونه پاسخ موجود نیست';
+   document.getElementById('chartStatus').textContent='کندل Ourbit · خام: '+rawCount+' · معتبر/بسته: '+parsedCount+' · '+symbol+' · '+activeInterval+(ok?' · نمودار رسم شد':' · ساختار کندل نامعتبر')+(parsedCount===0?' · نمونه API: '+sample:'');
   }catch(e){
    drawChart([]);document.getElementById('chartStatus').textContent='کندل زنده دریافت نشد: '+e.message+' · داده قبلی به‌عنوان زنده نمایش داده نمی‌شود.';
   }
