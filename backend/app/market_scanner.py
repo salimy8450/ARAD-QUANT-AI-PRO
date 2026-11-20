@@ -49,7 +49,7 @@ def parse_candles(payload: Any) -> list[dict[str, float]]:
         highs = column("high", "highs", "h")
         lows = column("low", "lows", "l")
         closes = column("close", "closes", "c")
-        volumes = column("vol", "volume", "volumes", "v")
+        volumes = column("vol", "volume", "volumes", "v", "amount", "turnover")
         times = column("time", "times", "timestamp", "timestamps", "t", "id")
         if all(x is not None for x in (opens, highs, lows, closes)):
             count = min(len(opens), len(highs), len(lows), len(closes))
@@ -91,7 +91,7 @@ def parse_candles(payload: Any) -> list[dict[str, float]]:
                     h = row.get("high", row.get("h"))
                     l = row.get("low", row.get("l"))
                     close_value = row.get("close", row.get("c"))
-                    v = row.get("volume", row.get("vol", row.get("v", 0)))
+                    v = row.get("volume", row.get("vol", row.get("v", row.get("amount", row.get("turnover", 0)))))
                 else:
                     continue
                 candle = {"time": float(t or 0), "open": float(o), "high": float(h),
