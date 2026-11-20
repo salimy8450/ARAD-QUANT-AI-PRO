@@ -148,8 +148,9 @@ def evaluate_symbol(c5: Any, c15: Any, c60: Any) -> dict[str, Any]:
     f5, f15, f60 = (_frame(parse_candles(x)) for x in (c5, c15, c60))
     if not f5["ready"]:
         return {"status": "insufficient_data", "label": "داده ۵دقیقه ناکافی", "signal": None}
-    if not f15["ready"] or not f60["ready"]:
-        return {"status": "insufficient_data", "label": "داده تایم‌فریم کمکی ناکافی", "signal": None}
+    if not f15["ready"]:
+        return {"status": "insufficient_data", "label": "داده ۱۵دقیقه ناکافی", "signal": None,
+                "five_min": f5, "fifteen_min": f15, "one_hour": f60}
     direction = f5["direction"]
     if direction == "NEUTRAL":
         return {"status": "no_setup", "label": "فعلاً بدون شرایط ورود", "signal": None,
@@ -178,5 +179,5 @@ def evaluate_symbol(c5: Any, c15: Any, c60: Any) -> dict[str, Any]:
     return {"status": "candidate", "label": "فرصت احتمالی · آزمایشی", "score": score,
             "signal": {"direction": direction, "entry": entry, "stop_loss": sl,
                        "targets": targets, "risk_reward_tp1": 1.0},
-            "context_1h": f60["direction"], "five_min": f5,
+            "context_1h": f60.get("direction", "UNKNOWN"), "five_min": f5,
             "fifteen_min": f15, "one_hour": f60}
