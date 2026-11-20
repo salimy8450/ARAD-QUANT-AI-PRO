@@ -288,19 +288,36 @@ function val(o,keys){if(Array.isArray(o))return null;if(!o||typeof o!=='object')
 function fmt(v){if(v===null||v===undefined||v==='')return '—';const n=Number(v);return Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:8}):String(v)}
 async function getJson(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}
 function candleRows(raw){
- const source=rowsOf(raw);
+ let node=unwrap(raw);
+ for(let i=0;i<6&&node&&typeof node==='object'&&!Array.isArray(node);i++){
+  const child=['data','result','list','rows','items','klines'].find(k=>node[k]!==undefined);
+  if(!child)break;node=node[child];
+ }
+ const num=x=>{const n=Number(x);return Number.isFinite(n)?n:NaN};
+ if(node&&!Array.isArray(node)&&typeof node==='object'){
+  const col=(...keys)=>{for(const k of keys)if(Array.isArray(node[k]))return node[k];return null};
+  const o=col('open','opens','o'),h=col('high','highs','h'),l=col('low','lows','l'),cl=col('close','closes','c'),v=col('vol','volume','volumes','v'),tm=col('time','times','timestamp','timestamps','t','id');
+  if(o&&h&&l&&cl){
+   let n=Math.min(o.length,h.length,l.length,cl.length);if(v)n=Math.min(n,v.length);if(tm)n=Math.min(n,tm.length);
+   const out=[];
+   for(let i=0;i<n;i++){
+    const x={o:num(o[i]),h:num(h[i]),l:num(l[i]),c:num(cl[i]),v:v?num(v[i]):0};
+    if([x.o,x.h,x.l,x.c,x.v].every(Number.isFinite)&&x.o>0&&x.c>0&&x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)&&x.h>=x.l)out.push(x);
+   }
+   return out;
+  }
+ }
+ const source=Array.isArray(node)?node:rowsOf(node);
  return source.map(o=>{
   if(Array.isArray(o)){
-   const n=o.slice(1,5).map(Number);if(n.some(v=>!Number.isFinite(v)))return null;
-   const legacy={o:n[0],c:n[1],h:n[2],l:n[3],v:Number(o[5]||0)};
-   const standard={o:n[0],h:n[1],l:n[2],c:n[3],v:Number(o[5]||0)};
+   const n=o.slice(1,5).map(num);if(n.some(v=>!Number.isFinite(v)))return null;
+   const legacy={o:n[0],c:n[1],h:n[2],l:n[3],v:num(o[5]||0)};
+   const standard={o:n[0],h:n[1],l:n[2],c:n[3],v:num(o[5]||0)};
    const valid=x=>Number.isFinite(x.v)&&x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)&&x.h>=x.l&&x.l>0;
-   // Ourbit Futures V1 array order is [time, open, close, high, low, volume].
-   // Prefer this documented order; the alternate OHLC order is only fallback.
    return valid(legacy)?legacy:(valid(standard)?standard:null);
   }
-  const x={o:Number(val(o,['open','o'])),h:Number(val(o,['high','h'])),l:Number(val(o,['low','l'])),c:Number(val(o,['close','c','lastPrice'])),v:Number(val(o,['volume','vol','v'])||0)};
-  return [x.o,x.h,x.l,x.c].every(Number.isFinite)&&x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)?x:null;
+  const x={o:num(val(o,['open','o'])),h:num(val(o,['high','h'])),l:num(val(o,['low','l'])),c:num(val(o,['close','c','lastPrice'])),v:num(val(o,['volume','vol','v'])||0)};
+  return [x.o,x.h,x.l,x.c].every(Number.isFinite)&&x.h>=Math.max(x.o,x.c)&&x.l<=Math.min(x.o,x.c)&&x.l>0?x:null;
  }).filter(Boolean);
 }
 function drawChart(raw){
