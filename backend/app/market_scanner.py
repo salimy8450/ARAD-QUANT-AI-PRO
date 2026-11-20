@@ -27,39 +27,80 @@ def _rows(payload: Any) -> list[Any]:
 
 
 def parse_candles(payload: Any) -> list[dict[str, float]]:
-    parsed = []
-    for row in _rows(payload):
-        try:
-            if isinstance(row, (list, tuple)) and len(row) >= 5:
-                # Futures V1 commonly returns [time, open, close, high, low, volume].
-                # Some feeds return the more common [time, open, high, low, close, volume].
-                t = row[0]
-                a, b, c, d = (float(x) for x in row[1:5])
-                valid = lambda high, low, close: high >= max(a, close) and low <= min(a, close) and high >= low
-                if valid(c, d, b):       # O, C, H, L
-                    o, close_value, h, l = a, b, c, d
-                elif valid(b, c, d):     # O, H, L, C
-                    o, h, l, close_value = a, b, c, d
+    """Normalize Ourbit row-based and columnar V1 kline responses."""
+    node = payload
+    for _ in range(6):
+        if not isinstance(node, dict):
+            break
+        child = next((node[k] for k in ("data", "result", "list", "rows", "items", "klines") if k in node), None)
+        if child is None:
+            break
+        node = child
+
+    parsed: list[dict[str, float]] = []
+    if isinstance(node, dict):
+        def column(*names: str):
+            for name in names:
+                value = node.get(name)
+                if isinstance(value, (list, tuple)):
+                    return value
+            return None
+        opens = column("open", "opens", "o")
+        highs = column("high", "highs", "h")
+        lows = column("low", "lows", "l")
+        closes = column("close", "closes", "c")
+        volumes = column("vol", "volume", "volumes", "v")
+        times = column("time", "times", "timestamp", "timestamps", "t", "id")
+        if all(x is not None for x in (opens, highs, lows, closes)):
+            count = min(len(opens), len(highs), len(lows), len(closes))
+            if volumes is not None:
+                count = min(count, len(volumes))
+            if times is not None:
+                count = min(count, len(times))
+            for i in range(count):
+                try:
+                    candle = {
+                        "time": float(times[i]) if times is not None else float(i),
+                        "open": float(opens[i]), "high": float(highs[i]),
+                        "low": float(lows[i]), "close": float(closes[i]),
+                        "volume": float(volumes[i]) if volumes is not None else 0.0,
+                    }
+                    if all(math.isfinite(x) for x in candle.values()) and candle["close"] > 0 and candle["high"] >= max(candle["open"], candle["close"]) and candle["low"] <= min(candle["open"], candle["close"]) and candle["high"] >= candle["low"]:
+                        parsed.append(candle)
+                except (TypeError, ValueError, OverflowError):
+                    continue
+        else:
+            node = [node]
+    if not parsed:
+        for row in _rows(node):
+            try:
+                if isinstance(row, (list, tuple)) and len(row) >= 5:
+                    t = row[0]
+                    a, b, c, d = (float(x) for x in row[1:5])
+                    valid = lambda high, low, close: high >= max(a, close) and low <= min(a, close) and high >= low
+                    if valid(c, d, b):
+                        o, close_value, h, l = a, b, c, d
+                    elif valid(b, c, d):
+                        o, h, l, close_value = a, b, c, d
+                    else:
+                        continue
+                    v = row[5] if len(row) > 5 else 0
+                elif isinstance(row, dict):
+                    t = row.get("time", row.get("timestamp", row.get("t", 0)))
+                    o = row.get("open", row.get("o"))
+                    h = row.get("high", row.get("h"))
+                    l = row.get("low", row.get("l"))
+                    close_value = row.get("close", row.get("c"))
+                    v = row.get("volume", row.get("vol", row.get("v", 0)))
                 else:
                     continue
-                v = row[5] if len(row) > 5 else 0
-            elif isinstance(row, dict):
-                t = row.get("time", row.get("timestamp", row.get("t", 0)))
-                o = row.get("open", row.get("o"))
-                h = row.get("high", row.get("h"))
-                l = row.get("low", row.get("l"))
-                close_value = row.get("close", row.get("c"))
-                v = row.get("volume", row.get("vol", row.get("v", 0)))
-            else:
+                candle = {"time": float(t or 0), "open": float(o), "high": float(h),
+                          "low": float(l), "close": float(close_value), "volume": float(v or 0)}
+                if all(math.isfinite(x) for x in candle.values()) and candle["close"] > 0 and candle["high"] >= max(candle["open"], candle["close"]) and candle["low"] <= min(candle["open"], candle["close"]) and candle["high"] >= candle["low"]:
+                    parsed.append(candle)
+            except (TypeError, ValueError, OverflowError):
                 continue
-            candle = {"time": float(t or 0), "open": float(o), "high": float(h),
-                      "low": float(l), "close": float(close_value), "volume": float(v or 0)}
-            if all(math.isfinite(x) for x in candle.values()) and candle["close"] > 0 and candle["high"] >= candle["low"]:
-                parsed.append(candle)
-        except (TypeError, ValueError, OverflowError):
-            continue
     parsed.sort(key=lambda x: x["time"])
-    # The newest bar may still be forming. Exclude it to avoid intrabar repainting.
     return parsed[:-1] if len(parsed) >= 3 else []
 
 
