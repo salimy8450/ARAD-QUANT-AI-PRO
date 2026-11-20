@@ -257,6 +257,9 @@ h1{font-size:clamp(23px,3.5vw,36px);text-shadow:0 0 22px #00cfff22}
  .room-shell .grid>.panel{grid-column:1!important}
  .room-shell .grid>.panel:nth-child(6) .chart{height:245px}
 }
+
+/* Fix: the original cockpit CSS hid the four status panels permanently. */
+.room-shell .grid>.panel:nth-child(-n+4){display:block!important;visibility:visible!important}
 </style></head><body><main>
 <header class="top"><div class="brand">ARAD <em>QUANT</em> AI PRO</div><div class="chip">OURBIT FUTURES · READ ONLY / PAPER MODE</div></header>
 <h1>مرکز هوشمند تحلیل بازار</h1><div class="lead">تشخیص حرکت در ۵ دقیقه · تأیید در ۱۵ دقیقه · زمینه روند در یک ساعت</div>
