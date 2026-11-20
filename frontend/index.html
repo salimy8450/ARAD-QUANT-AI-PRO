@@ -158,13 +158,19 @@ h1{font-size:clamp(23px,3.5vw,36px);text-shadow:0 0 22px #00cfff22}
 /* Reference cockpit layout: left metrics, central live chart/core, right execution panels */
 .room-shell{background:radial-gradient(ellipse at 50% 0%,#174b63 0%,#0b1b2a 43%,#040a12 100%);border:1px solid #39748d;box-shadow:0 35px 90px #000d,inset 0 1px 0 #b9f4ff30}
 .room-wall{background:linear-gradient(90deg,#06111d,#164b61 48%,#06111d);border-color:#4b91a8;color:#b4f4ff}
-.room-shell .grid{grid-template-columns:minmax(0,1fr) minmax(0,1.42fr) minmax(0,1fr);grid-template-areas:
-"s1 s2 s3"
-"s4 core s4"
-"sentiment chart orderbook"
-"stats chart plan"
-"liquidity scanner scanner"
-"diagnostics diagnostics diagnostics";gap:16px}
+.room-shell .grid{direction:ltr;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1.25fr) minmax(0,1fr);grid-template-areas:
+"s1 s2 s3 s4"
+"sentiment core core orderbook"
+"stats chart chart plan"
+"liquidity chart chart scanner"
+"diagnostics diagnostics diagnostics diagnostics";gap:14px;align-items:stretch}
+.room-shell .grid>.panel{direction:rtl;min-width:0}
+.room-shell .grid>.panel:nth-child(5){display:flex;align-items:center;gap:16px}
+.room-shell .grid>.panel:nth-child(6){min-height:560px}
+.room-shell .grid>.panel:nth-child(6) .chart{height:420px}
+.room-shell .grid>.panel:nth-child(7){grid-column:1 / -1;overflow-x:auto}
+.room-shell .grid>.panel:nth-child(7) table{min-width:680px}
+.room-shell .grid>.panel:nth-child(13){grid-column:1 / -1}
 .room-shell .grid>.panel:nth-child(1){grid-area:s1}
 .room-shell .grid>.panel:nth-child(2){grid-area:s2}
 .room-shell .grid>.panel:nth-child(3){grid-area:s3}
@@ -189,14 +195,22 @@ h1{font-size:clamp(23px,3.5vw,36px);text-shadow:0 0 22px #00cfff22}
 @media(max-width:900px){
  .room-shell .grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:
  "s1 s2" "s3 s4" "core core" "chart chart" "orderbook orderbook" "plan plan" "sentiment stats" "liquidity liquidity" "scanner scanner" "diagnostics diagnostics"}
- .room-shell .grid>.panel:nth-child(6){grid-row:auto;min-height:360px}
+ .room-shell .grid>.panel:nth-child(5){grid-column:1 / -1}
+ .room-shell .grid>.panel:nth-child(6){grid-row:auto;grid-column:1 / -1;min-height:360px}
  .room-shell .grid>.panel:nth-child(6) .chart{height:280px}
+ .room-shell .grid>.panel:nth-child(7),.room-shell .grid>.panel:nth-child(13){grid-column:1 / -1}
 }
 @media(max-width:520px){
- .room-shell .grid{grid-template-columns:minmax(0,1fr);grid-template-areas:
- "s1" "s2" "s3" "s4" "core" "chart" "orderbook" "plan" "sentiment" "stats" "liquidity" "scanner" "diagnostics"}
+ main{width:100%;max-width:100%;padding:8px;overflow-x:hidden}
+ .room-shell{width:100%;margin:12px 0;padding:8px;border-radius:14px}
+ .room-shell .grid{width:100%;grid-template-columns:minmax(0,1fr);grid-template-areas:
+ "s1" "s2" "s3" "s4" "core" "chart" "orderbook" "plan" "sentiment" "stats" "liquidity" "scanner" "diagnostics";gap:10px;padding:0}
+ .room-shell .grid>.panel{grid-column:1!important;width:100%;min-width:0;padding:12px;transform:none!important}
+ .room-shell .grid>.panel:nth-child(5){flex-direction:row;justify-content:space-between}
+ .room-shell .grid>.panel:nth-child(6){min-height:0}
  .room-shell .grid>.panel:nth-child(6) .chart{height:245px}
- .neural-visual{flex-basis:100px;width:100px;height:100px}
+ .room-shell .grid>.panel:nth-child(7) table{min-width:620px}
+ .neural-visual{flex:0 0 100px;width:100px;height:100px}
 }
 
 </style></head><body><main>
