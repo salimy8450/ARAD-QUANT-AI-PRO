@@ -255,6 +255,7 @@ async def _verify_contract(client: httpx.AsyncClient, chain_id: int, address: st
 
 
 async def _enrich(client: httpx.AsyncClient, item: dict[str, Any]) -> None:
+    await _fetch_article_contract(client, item)
     symbol_list = item.get("symbols") or []
     if not symbol_list:
         item["score_reasons"].append("نماد از عنوان قابل استخراج نبود")
@@ -279,6 +280,20 @@ async def _enrich(client: httpx.AsyncClient, item: dict[str, Any]) -> None:
         item["score"] = 45
         item["score_reasons"].append("جفت معاملاتی با آدرس قرارداد دقیق در DEX پیدا نشد")
         return
+    min_liquidity = float(os.getenv("ARAD_PRELISTING_MIN_LIQUIDITY_USD", "10000"))
+    liquid_pairs = []
+    for pair in exact:
+        try:
+            if float(pair.get("liquidity_usd") or 0) >= min_liquidity:
+                liquid_pairs.append(pair)
+        except (TypeError, ValueError):
+            continue
+    if not liquid_pairs:
+        item["buyability"] = "rejected"
+        item["score"] = 0
+        item["score_reasons"] = [f"نقدینگی DEX کمتر از حداقل ${min_liquidity:,.0f} یا نامشخص است"]
+        return
+    exact = liquid_pairs
     try:
         security = await _verify_contract(client, int(chain_id), address)
         item["security"] = security
