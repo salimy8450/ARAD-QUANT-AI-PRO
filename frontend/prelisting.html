@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARAD PRE-LISTING HUNTER</title>
+<style>
+:root{color-scheme:dark;--bg:#07101c;--panel:#101e30;--line:#28435c;--muted:#9bb0c7;--cyan:#48dff5;--green:#35d99a;--red:#ff647e;--gold:#f5c96b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -15%,#17415a,#07101c 55%,#03070d);color:#eef7ff;font:14px Tahoma,Arial,sans-serif}
+main{max-width:1200px;margin:auto;padding:20px}.top,.panel{border:1px solid var(--line);border-radius:15px;background:linear-gradient(145deg,#14283d,#0b1727);padding:17px;margin-bottom:14px;box-shadow:0 12px 32px #0006}
+.top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}.brand{font-size:clamp(20px,4vw,30px);font-weight:800;color:var(--cyan)}.muted,.hint{color:var(--muted);font-size:12px;line-height:1.8}
+button,a.btn{border:1px solid #2686a5;background:linear-gradient(135deg,#0e5269,#123149);color:#eafaff;padding:11px 15px;border-radius:9px;font-weight:700;text-decoration:none;cursor:pointer}
+.stats,.sources{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.stat{padding:14px;border:1px solid var(--line);border-radius:11px;background:#081522}.stat b{display:block;font-size:25px;margin-top:8px;color:var(--cyan)}
+.source{padding:12px;border:1px solid var(--line);border-radius:10px;background:#091827}.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--gold)}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:780px}th,td{padding:12px 9px;border-bottom:1px solid #263b50;text-align:right;vertical-align:top}th{color:#91d9e8;font-size:12px}td{line-height:1.7}.pill{display:inline-block;border:1px solid #386078;border-radius:20px;padding:3px 8px;font-size:11px}.pill.good{color:var(--green);border-color:#237958}.pill.warn{color:var(--gold);border-color:#85652c}.pill.bad{color:var(--red);border-color:#824052}
+a{color:#67dff2}.dex{font-size:11px;color:#afc4d8}.footer{font-size:12px;color:var(--muted);line-height:1.9}
+@media(max-width:700px){main{padding:10px}.stats,.sources{grid-template-columns:repeat(2,minmax(0,1fr))}.top{align-items:flex-start}}
+</style>
+</head>
+<body><main>
+<section class="top">
+ <div><div class="brand">ARAD PRE-LISTING HUNTER</div><div class="muted">رادار اطلاعیه‌های رسمی · کشف بازار DEX · بررسی قرارداد · فقط خواندنی</div></div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="/">بازگشت به داشبورد</a><button id="refresh">↻ اسکن مجدد</button></div>
+</section>
+<section class="panel">
+ <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center"><b>وضعیت شکارچی</b><span id="updated" class="muted">در انتظار دریافت داده…</span></div>
+ <div class="stats" style="margin-top:14px">
+  <div class="stat">اطلاعیه‌های شناسایی‌شده<b id="total">—</b></div>
+  <div class="stat">خرید تأییدشده<b id="buyable">—</b></div>
+  <div class="stat">نیازمند بررسی بیشتر<b id="unverified">—</b></div>
+  <div class="stat">ردشده به‌دلیل ریسک<b id="rejected">—</b></div>
+ </div>
+</section>
+<section class="panel"><b>اتصال منابع رسمی</b><div id="sources" class="sources" style="margin-top:12px"></div></section>
+<section class="panel">
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>فرصت‌های قبل از لیست شدن</b><span class="muted">پنجره بررسی: ۷۲ ساعت اخیر</span></div>
+ <div class="table-wrap"><table><thead><tr><th>صرافی / ارز</th><th>اطلاعیه</th><th>وضعیت خرید</th><th>امتیاز</th><th>بازار DEX</th></tr></thead><tbody id="rows"><tr><td colspan="5" class="hint">برای شروع، اسکن را اجرا کنید.</td></tr></tbody></table></div>
+</section>
+<section class="panel footer">
+ <b>قواعد ایمنی</b><br>
+ تطبیق نماد به‌تنهایی هویت توکن را ثابت نمی‌کند. سیستم فقط زمانی «خرید تأییدشده» نمایش می‌دهد که آدرس قرارداد رسمی با آدرس توکن در DEX دقیقاً یکسان باشد و بررسی اولیه GoPlus نیز پرچم خطر ندهد. نبود اطلاعات به معنی امن بودن نیست. این نسخه سفارش ثبت نمی‌کند و سود یا رشد قیمت را تضمین نمی‌کند.
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function statusLabel(x){if(x==='buyable_verified')return '<span class="pill good">خرید تأییدشده</span>';if(x==='rejected')return '<span class="pill bad">ردشده</span>';if(x==='not_found')return '<span class="pill warn">بازار دقیق پیدا نشد</span>';return '<span class="pill warn">هنوز تأیید نشده</span>'}
+async function scan(){
+ $('refresh').disabled=true;$('refresh').textContent='در حال اسکن…';$('rows').innerHTML='<tr><td colspan="5" class="hint">در حال دریافت اطلاعیه‌های رسمی و بررسی جفت‌های DEX…</td></tr>';
+ try{
+  const r=await fetch('/api/prelisting/scan?since_hours=72&force=true',{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.detail||'خطای سرویس');
+  $('total').textContent=d.total_announcements??0;$('buyable').textContent=d.buyable_verified??0;$('unverified').textContent=d.unverified??0;$('rejected').textContent=d.rejected??0;
+  $('updated').textContent='آخرین بررسی: '+new Date(d.generated_at).toLocaleString('fa-IR')+' · '+(d.status==='completed'?'اسکن انجام شد':'منابع در دسترس نیستند');
+  $('sources').innerHTML=Object.entries(d.sources||{}).map(([name,s])=>'<div class="source"><b>'+esc(name)+'</b><div class="'+(s.ok?'ok':'bad')+'">'+(s.ok?'متصل':'عدم دریافت')+'</div><div class="muted">'+(s.ok?esc(s.count)+' اطلاعیه · '+esc(s.method):esc(s.error||'نامشخص'))+'</div></div>').join('');
+  const items=d.items||[];
+  $('rows').innerHTML=items.length?items.map(x=>{
+   const pairs=x.matched_pair?[x.matched_pair]:((x.dex_candidates||[]).slice(0,2));
+   const dex=pairs.length?pairs.map(p=>'<div class="dex">'+esc(p.chain_id)+' / '+esc(p.dex_id)+' · نقدینگی $'+esc(p.liquidity_usd??'—')+' · <a href="'+esc(p.url||'#')+'" target="_blank" rel="noopener">بازار</a></div>').join(''):'<span class="muted">جفتی پیدا نشد</span>';
+   return '<tr><td><b>'+esc(x.exchange)+'</b><br>'+esc((x.symbols||[]).join(', ')||'نماد نامشخص')+'</td><td><a href="'+esc(x.url)+'" target="_blank" rel="noopener">'+esc(x.title)+'</a><div class="muted">'+esc(x.published_at||'زمان انتشار در دسترس نیست')+'</div></td><td>'+statusLabel(x.buyability)+'<div class="muted">'+esc((x.score_reasons||[]).join('؛ '))+'</div></td><td>'+esc(x.score??0)+'/100</td><td>'+dex+'</td></tr>';
+  }).join(''):'<tr><td colspan="5" class="hint">در بازه انتخابی اطلاعیه قابل‌تأییدی دریافت نشد. ممکن است برخی سایت‌ها دسترسی خودکار را محدود کرده باشند.</td></tr>';
+ }catch(e){$('rows').innerHTML='<tr><td colspan="5" class="bad">خطا: '+esc(e.message)+'</td></tr>';$('updated').textContent='اسکن ناموفق';}
+ finally{$('refresh').disabled=false;$('refresh').textContent='↻ اسکن مجدد'}
+}
+$('refresh').addEventListener('click',scan);scan();
+</script>
+</body></html>
