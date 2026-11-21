@@ -7,22 +7,53 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from backend.app.providers.ourbit_futures import OurbitFutures
 from backend.app.market_scanner import parse_candles, _frame, evaluate_symbol
+from backend.app.prelisting_hunter import hunter
 
 app = FastAPI(
     title="ARAD QUANT AI PRO",
-    version="0.2.0",
-    description="Ourbit Futures read-only market research terminal"
+    version="0.3.0",
+    description="Ourbit Futures research terminal with pre-listing discovery"
 )
 exchange = OurbitFutures()
-FRONTEND = Path(__file__).resolve().parents[2] / "frontend" / "index.html"
+ROOT = Path(__file__).resolve().parents[2]
+FRONTEND = ROOT / "frontend" / "index.html"
+PRELISTING_FRONTEND = ROOT / "frontend" / "prelisting.html"
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
-    return HTMLResponse(FRONTEND.read_text(encoding="utf-8"))
+    page = FRONTEND.read_text(encoding="utf-8")
+    shortcut = '<a href="/prelisting" style="position:fixed;z-index:9999;left:12px;bottom:12px;padding:11px 14px;border:1px solid #20d9f2;border-radius:10px;background:#09283a;color:#baf7ff;text-decoration:none;font:700 12px Tahoma,Arial;box-shadow:0 4px 18px #0009">◈ شکارچی قبل از لیستینگ</a>'
+    if "</body>" in page and "/prelisting" not in page:
+        page = page.replace("</body>", shortcut + "</body>")
+    return HTMLResponse(page)
+
+@app.get("/prelisting", response_class=HTMLResponse)
+async def prelisting_dashboard():
+    if not PRELISTING_FRONTEND.exists():
+        raise HTTPException(status_code=404, detail="Pre-listing dashboard not found")
+    return HTMLResponse(PRELISTING_FRONTEND.read_text(encoding="utf-8"))
 
 @app.get("/api/health")
 async def health():
-    return {"ok": True, "project": "ARAD QUANT AI PRO", "mode": "read_only_paper"}
+    return {"ok": True, "project": "ARAD QUANT AI PRO", "mode": "read_only_paper",
+            "modules": ["ourbit_market_scanner", "prelisting_hunter"]}
+
+@app.get("/api/prelisting/health")
+async def prelisting_health():
+    return {"ok": True, "module": "ARAD PRE-LISTING HUNTER",
+            "mode": "read_only", "order_execution": False,
+            "sources": ["KuCoin", "MEXC", "Gate.io", "Ourbit"]}
+
+@app.get("/api/prelisting/scan")
+async def prelisting_scan(
+    since_hours: int = Query(default=72, ge=1, le=720),
+    force: bool = Query(default=False),
+):
+    """Scan official listing announcements and verify DEX contract identity where possible."""
+    try:
+        return await hunter.scan(since_hours=since_hours, force=force)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Pre-listing scan unavailable: {str(exc)[:300]}")
 
 @app.get("/api/status")
 async def status():
