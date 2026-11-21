@@ -1,0 +1,18 @@
+name: ARAD Pre-Listing Monitor
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger public read-only hunter
+        env:
+          HUNTER_URL: ${{ vars.ARAD_PRELISTING_API_URL }}
+        run: |
+          if [ -z "$HUNTER_URL" ]; then
+            echo "Set repository variable ARAD_PRELISTING_API_URL to the deployed app base URL."
+            exit 0
+          fi
+          curl --fail --silent --show-error --max-time 45 "$HUNTER_URL/api/prelisting/scan?since_hours=72&force=true"
