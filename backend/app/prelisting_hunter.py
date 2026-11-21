@@ -274,7 +274,7 @@ async def _enrich(client: httpx.AsyncClient, item: dict[str, Any]) -> None:
         item["score_reasons"].append("قرارداد رسمی یا شبکه در اطلاعیه پیدا نشد؛ تطبیق نماد DEX به‌تنهایی کافی نیست")
         return
     dex_chain = {56: "bsc", 1: "ethereum", 8453: "base", 42161: "arbitrum"}.get(int(chain_id))
-    exact = [p for p in item.get("dex_candidates", []) if p["base_token_address"].lower() == address.lower() and (not dex_chain or str(p.get("chain_id", "")).lower() == dex_chain)]
+    exact = [p for p in item.get("dex_candidates", []) if str(p.get("base_token_address") or "").lower() == address.lower() and (not dex_chain or str(p.get("chain_id", "")).lower() == dex_chain)]
     if not exact:
         item["buyability"] = "not_found"
         item["score"] = 45
