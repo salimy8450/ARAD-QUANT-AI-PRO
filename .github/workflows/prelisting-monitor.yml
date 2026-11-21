@@ -9,10 +9,6 @@ jobs:
     steps:
       - name: Trigger public read-only hunter
         env:
-          HUNTER_URL: ${{ vars.ARAD_PRELISTING_API_URL }}
+          HUNTER_URL: ${{ vars.ARAD_PRELISTING_API_URL || 'https://arad-quant-ai-pro.vercel.app' }}
         run: |
-          if [ -z "$HUNTER_URL" ]; then
-            echo "Set repository variable ARAD_PRELISTING_API_URL to the deployed app base URL."
-            exit 0
-          fi
           curl --fail --silent --show-error --max-time 45 "$HUNTER_URL/api/prelisting/scan?since_hours=72&force=true"
