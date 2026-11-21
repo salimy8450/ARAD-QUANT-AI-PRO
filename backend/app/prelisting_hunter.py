@@ -21,7 +21,7 @@ EXCHANGES = {
     "KuCoin": {"kind": "api", "url": "https://api.kucoin.com/api/v3/announcements"},
     "MEXC": {"kind": "api", "url": "https://www.mexc.com/api/v3/announcements"},
     "Gate.io": {"kind": "html", "url": "https://www.gate.com/announcements"},
-    "Ourbit": {"kind": "html", "url": "https://www.ourbit.com/announcement"},
+    "Ourbit": {"kind": "html", "url": "https://www.ourbit.com/support/categories/360000254192"},
 }
 LISTING_WORDS = re.compile(r"\b(list(?:s|ed|ing|ings)?|will list|new listings?|spot trading|trading will start|world premiere|adds? .+ trading pair)\b", re.I)
 NON_LISTING_WORDS = re.compile(r"\b(delist(?:ed|ing)?|remove|suspend|maintenance|deposit|withdraw|airdrop|campaign|futures|perpetual)\b", re.I)
@@ -158,7 +158,7 @@ async def _fetch_html_exchange(client: httpx.AsyncClient, exchange: str) -> list
         full_url = urljoin(url, html.unescape(href))
         if urlparse(full_url).netloc.lower() != urlparse(url).netloc.lower():
             continue
-        row = _normalise(exchange, {"title": title, "url": full_url})
+        context = source[max(0, match.start() - 250):min(len(source), match.end() + 250)]\n        date_match = re.search(r"20\\d{2}-\\d{2}-\\d{2}", context)\n        row = _normalise(exchange, {"title": title, "url": full_url, "publishedAt": date_match.group(0) if date_match else None})
         if row:
             rows.append(row)
     return rows[:50]
