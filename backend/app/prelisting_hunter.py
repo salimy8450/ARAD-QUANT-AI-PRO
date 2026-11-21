@@ -95,6 +95,19 @@ def _symbols(title: str) -> list[str]:
     return [match.group(1).upper()] if match else []
 
 
+def _chain_id(text: str) -> int | None:
+    value = text.lower()
+    if re.search(r"\b(?:bsc|bnb|binance smart chain)\b", value):
+        return 56
+    if re.search(r"\b(?:ethereum|erc20|eth)\b", value):
+        return 1
+    if re.search(r"\bbase\b", value):
+        return 8453
+    if re.search(r"\barbitrum\b", value):
+        return 42161
+    return None
+
+
 def _normalise(exchange: str, row: dict[str, Any]) -> dict[str, Any] | None:
     title = str(_first(row, "annTitle", "title", "name", "subject", "text") or "").strip()
     description = str(_first(row, "annDesc", "description", "content", "summary") or "").strip()
@@ -108,7 +121,7 @@ def _normalise(exchange: str, row: dict[str, Any]) -> dict[str, Any] | None:
     raw_time = _first(row, "cTime", "releaseTime", "postTime", "createdAt", "publishedAt", "time")
     text_blob = f"{title} {description}"
     contract = CONTRACT_RE.search(text_blob)
-    chain = next((cid for hint, cid in CHAIN_HINTS.items() if hint in text_blob.lower()), None)
+    chain = _chain_id(text_blob)
     return {
         "id": str(_first(row, "annId", "id", "articleId") or f"{exchange}:{title}"),
         "exchange": exchange, "title": title, "description": description[:700],
@@ -158,7 +171,9 @@ async def _fetch_html_exchange(client: httpx.AsyncClient, exchange: str) -> list
         full_url = urljoin(url, html.unescape(href))
         if urlparse(full_url).netloc.lower() != urlparse(url).netloc.lower():
             continue
-        context = source[max(0, match.start() - 250):min(len(source), match.end() + 250)]\n        date_match = re.search(r"20\\d{2}-\\d{2}-\\d{2}", context)\n        row = _normalise(exchange, {"title": title, "url": full_url, "publishedAt": date_match.group(0) if date_match else None})
+        context = source[max(0, match.start() - 250):min(len(source), match.end() + 250)]
+        date_match = re.search(r"20\d{2}-\d{2}-\d{2}", context)
+        row = _normalise(exchange, {"title": title, "url": full_url, "publishedAt": date_match.group(0) if date_match else None})
         if row:
             rows.append(row)
     return rows[:50]
