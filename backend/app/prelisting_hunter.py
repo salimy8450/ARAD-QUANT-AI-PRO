@@ -179,6 +179,35 @@ async def _fetch_html_exchange(client: httpx.AsyncClient, exchange: str) -> list
     return rows[:50]
 
 
+async def _fetch_article_contract(client: httpx.AsyncClient, item: dict[str, Any]) -> None:
+    """Read an announcement detail page only on the exchange's own domain."""
+    host = (urlparse(str(item.get("url") or "")).hostname or "").lower()
+    allowed = {
+        "KuCoin": ("kucoin.com",), "MEXC": ("mexc.com",),
+        "Gate.io": ("gate.com",), "Ourbit": ("ourbit.com",),
+    }.get(str(item.get("exchange")), ())
+    if not host or not any(host == domain or host.endswith("." + domain) for domain in allowed):
+        return
+    try:
+        response = await client.get(str(item["url"]), headers={"User-Agent": "ARAD-PreListingResearch/1.0"})
+        response.raise_for_status()
+        body = html.unescape(re.sub(r"<[^>]+>", " ", response.text[:1_500_000]))
+        body = re.sub(r"\\s+", " ", body)
+        if not item.get("contract_address"):
+            labelled = re.search(
+                r"(?:token\\s+)?contract(?:\\s+address)?\\s*[:：#-]?\\s*(0x[a-fA-F0-9]{40})",
+                body, re.I
+            )
+            if labelled:
+                item["contract_address"] = labelled.group(1)
+        if not item.get("chain_id"):
+            item["chain_id"] = _chain_id(body)
+        if not item.get("description"):
+            item["description"] = body[:650]
+    except Exception:
+        return
+
+
 async def _dex_pairs(client: httpx.AsyncClient, symbol: str) -> list[dict[str, Any]]:
     response = await client.get("https://api.dexscreener.com/latest/dex/search", params={"q": symbol})
     response.raise_for_status()
