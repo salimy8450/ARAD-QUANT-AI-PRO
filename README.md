@@ -55,7 +55,7 @@ Research and paper mode only. No trade execution is implemented. No win rate is 
 - `GET /api/prelisting/health` reports module availability.
 - `GET /api/prelisting/scan?since_hours=72&force=true` scans official announcement sources and performs bounded DEX token-pair discovery.
 - Current sources: KuCoin public announcements API, MEXC public announcements endpoint, Gate.io official announcements page, and Ourbit official Listing Information category.
-- DEX Screener results are discovery leads only. A ticker match is not token identity.
+- DEX Screener results are discovery leads only. A ticker match is not token identity.\n- The first pass uses a configurable minimum DEX liquidity threshold of USD 10,000 (`ARAD_PRELISTING_MIN_LIQUIDITY_USD`) before considering a pair eligible for a verified alert.
 - A result is marked `buyable_verified` only when the announcement contains an EVM contract and network, the DEX pair matches the exact contract on the mapped chain, and GoPlus returns an explicit clean preliminary security record.
 - Supported EVM security chain mappings in this first pass: BNB Smart Chain, Ethereum, Base, and Arbitrum. Solana and other networks remain unverified in this version.
 - Optional Telegram alerts are sent only for `buyable_verified` items when `ARAD_PRELISTING_BOT_TOKEN` and `ARAD_PRELISTING_CHAT_ID` are configured as Vercel environment variables. Do not commit these values.\n- A 15-minute GitHub Actions monitor workflow is included. Set the repository variable `ARAD_PRELISTING_API_URL` to the deployed app base URL to enable scheduled polling; otherwise the workflow exits without scanning. The workflow must be merged into the default branch before scheduled runs start.
