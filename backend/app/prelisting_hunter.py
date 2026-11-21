@@ -192,10 +192,10 @@ async def _fetch_article_contract(client: httpx.AsyncClient, item: dict[str, Any
         response = await client.get(str(item["url"]), headers={"User-Agent": "ARAD-PreListingResearch/1.0"})
         response.raise_for_status()
         body = html.unescape(re.sub(r"<[^>]+>", " ", response.text[:1_500_000]))
-        body = re.sub(r"\\s+", " ", body)
+        body = re.sub(r"\s+", " ", body)
         if not item.get("contract_address"):
             labelled = re.search(
-                r"(?:token\\s+)?contract(?:\\s+address)?\\s*[:：#-]?\\s*(0x[a-fA-F0-9]{40})",
+                r"(?:token\s+)?contract(?:\s+address)?\s*[:：#-]?\s*(0x[a-fA-F0-9]{40})",
                 body, re.I
             )
             if labelled:
