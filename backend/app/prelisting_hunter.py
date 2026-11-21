@@ -13,18 +13,18 @@ import re
 import time
 from datetime import datetime, timezone, timedelta
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import httpx
 
 EXCHANGES = {
     "KuCoin": {"kind": "api", "url": "https://api.kucoin.com/api/v3/announcements"},
-    "MEXC": {"kind": "api", "url": "https://www.mexc.com/api/platform/announcement/list"},
+    "MEXC": {"kind": "api", "url": "https://www.mexc.com/api/v3/announcements"},
     "Gate.io": {"kind": "html", "url": "https://www.gate.com/announcements"},
     "Ourbit": {"kind": "html", "url": "https://www.ourbit.com/announcement"},
 }
-LISTING_WORDS = re.compile(r"\b(list(?:ed|ing)?|will list|new listing|spot trading|trading will start|world premiere|adds? .+ trading pair)\b", re.I)
-NON_LISTING_WORDS = re.compile(r"\b(del ist|delisting|remove|suspend|maintenance|deposit|withdraw|airdrop|campaign|futures|perpetual)\b", re.I)
+LISTING_WORDS = re.compile(r"\b(list(?:s|ed|ing|ings)?|will list|new listings?|spot trading|trading will start|world premiere|adds? .+ trading pair)\b", re.I)
+NON_LISTING_WORDS = re.compile(r"\b(delist(?:ed|ing)?|remove|suspend|maintenance|deposit|withdraw|airdrop|campaign|futures|perpetual)\b", re.I)
 SYMBOL_PARENS = re.compile(r"\(([A-Z0-9]{2,15})\)")
 CONTRACT_RE = re.compile(r"0x[a-fA-F0-9]{40}")
 CHAIN_HINTS = {
@@ -34,6 +34,7 @@ CHAIN_HINTS = {
 }
 CACHE_TTL = 45
 _cache: dict[str, Any] = {"at": 0.0, "payload": None}
+_telegram_seen: set[str] = set()
 
 
 def _items(payload: Any) -> list[dict[str, Any]]:
@@ -155,7 +156,7 @@ async def _fetch_html_exchange(client: httpx.AsyncClient, exchange: str) -> list
         if not title or not _looks_like_listing(title):
             continue
         full_url = urljoin(url, html.unescape(href))
-        if not full_url.startswith(url.split("/")[0] + "//"):
+        if urlparse(full_url).netloc.lower() != urlparse(url).netloc.lower():
             continue
         row = _normalise(exchange, {"title": title, "url": full_url})
         if row:
@@ -227,7 +228,8 @@ async def _enrich(client: httpx.AsyncClient, item: dict[str, Any]) -> None:
         item["score"] = 40
         item["score_reasons"].append("قرارداد رسمی یا شبکه در اطلاعیه پیدا نشد؛ تطبیق نماد DEX به‌تنهایی کافی نیست")
         return
-    exact = [p for p in item.get("dex_candidates", []) if p["base_token_address"].lower() == address.lower()]
+    dex_chain = {56: "bsc", 1: "ethereum", 8453: "base", 42161: "arbitrum"}.get(int(chain_id))
+    exact = [p for p in item.get("dex_candidates", []) if p["base_token_address"].lower() == address.lower() and (not dex_chain or str(p.get("chain_id", "")).lower() == dex_chain)]
     if not exact:
         item["buyability"] = "not_found"
         item["score"] = 45
@@ -249,6 +251,37 @@ async def _enrich(client: httpx.AsyncClient, item: dict[str, Any]) -> None:
         item["buyability"] = "unverified"
         item["score"] = 45
         item["score_reasons"].append("بررسی امنیت انجام نشد: " + str(exc)[:120])
+
+
+async def _send_telegram_alerts(client: httpx.AsyncClient, items: list[dict[str, Any]]) -> dict[str, Any]:
+    token = os.getenv("ARAD_PRELISTING_BOT_TOKEN", "").strip()
+    chat_id = os.getenv("ARAD_PRELISTING_CHAT_ID", "").strip()
+    if not token or not chat_id:
+        return {"configured": False, "sent": 0, "note": "Telegram credentials are not configured"}
+    sent = 0
+    for item in items:
+        if item.get("buyability") != "buyable_verified" or str(item.get("id")) in _telegram_seen:
+            continue
+        pair = item.get("matched_pair") or {}
+        message = (
+            "ARAD PRE-LISTING HUNTER\n"
+            f"Verified pre-listing market: {item.get('exchange')}\n"
+            f"Token: {', '.join(item.get('symbols') or [])}\n"
+            f"DEX: {pair.get('chain_id')} / {pair.get('dex_id')}\n"
+            f"Liquidity USD: {pair.get('liquidity_usd', 'n/a')}\n"
+            f"Announcement: {item.get('url')}\n"
+            "Read-only alert; not a buy instruction."
+        )
+        try:
+            response = await client.post(f"https://api.telegram.org/bot{token}/sendMessage",
+                                         json={"chat_id": chat_id, "text": message})
+            response.raise_for_status()
+            if response.json().get("ok"):
+                _telegram_seen.add(str(item.get("id")))
+                sent += 1
+        except Exception:
+            continue
+    return {"configured": True, "sent": sent}
 
 
 class PreListingHunter:
@@ -289,10 +322,11 @@ class PreListingHunter:
             # Enrich a bounded set to protect public API rate limits.
             await asyncio.gather(*(_enrich(client, item) for item in filtered[:30]), return_exceptions=True)
             filtered.sort(key=lambda x: (x.get("score", 0), x.get("published_at") or ""), reverse=True)
+            telegram_status = await _send_telegram_alerts(client, filtered)
             payload = {
                 "status": "completed" if any(x.get("ok") for x in source_status.values()) else "sources_unavailable",
                 "generated_at": datetime.now(timezone.utc).isoformat(),
-                "window_hours": since_hours, "sources": source_status,
+                "window_hours": since_hours, "sources": source_status, "telegram": telegram_status,
                 "total_announcements": len(filtered),
                 "buyable_verified": sum(x.get("buyability") == "buyable_verified" for x in filtered),
                 "unverified": sum(x.get("buyability") == "unverified" for x in filtered),
