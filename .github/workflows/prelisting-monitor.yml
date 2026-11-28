@@ -11,4 +11,4 @@ jobs:
         env:
           HUNTER_URL: ${{ vars.ARAD_PRELISTING_API_URL || 'https://arad-quant-ai-pro.vercel.app' }}
         run: |
-          curl --fail --silent --show-error --max-time 45 "$HUNTER_URL/api/prelisting/scan?since_hours=72&force=true"
+          curl --fail --silent --show-error --max-time 45 "$HUNTER_URL/api/prelisting/scan?since_hours=720&force=true"
