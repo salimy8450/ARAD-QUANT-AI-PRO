@@ -464,6 +464,40 @@ async def _send_ourbit_listing_alerts(client: httpx.AsyncClient, items: list[dic
     return {"configured": True, "sent": sent, "checked": len(candidates)}
 
 
+
+async def _fetch_ourbit_telegram(client: httpx.AsyncClient) -> list[dict[str, Any]]:
+    """Scrape the official Ourbit public Telegram channel preview as a near-real-time source."""
+    response = await client.get("https://t.me/s/ourbitofficial",
+                                headers={"User-Agent": "Mozilla/5.0 ARAD-ListingMonitor/2.0"})
+    response.raise_for_status()
+    source = response.text[:2_500_000]
+    rows: list[dict[str, Any]] = []
+    blocks = re.split(r'<div class="tgme_widget_message_wrap', source, flags=re.I)
+    for block in blocks[1:]:
+        post_match = re.search(r'data-post=["\']ourbitofficial/(\d+)["\']', block)
+        if not post_match:
+            continue
+        post_id = post_match.group(1)
+        text_match = re.search(r'<div class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>', block, re.I | re.S)
+        if not text_match:
+            continue
+        raw_message = re.sub(r"<br\s*/?>", "\n", text_match.group(1), flags=re.I)
+        message = html.unescape(re.sub(r"<[^>]+>", " ", raw_message))
+        message = re.sub(r"\s+", " ", message).strip()
+        if not _looks_like_listing(message):
+            continue
+        time_match = re.search(r'<time[^>]*datetime=["\']([^"\']+)["\']', block, re.I)
+        published = time_match.group(1) if time_match else None
+        article_match = re.search(r'href=["\'](https?://www\.ourbit\.com/support/articles/\d+)["\']', block, re.I)
+        article_url = article_match.group(1) if article_match else f"https://t.me/ourbitofficial/{post_id}"
+        item = _normalise("Ourbit", {"title": message[:220], "description": message,
+                                     "url": article_url, "publishedAt": published,
+                                     "id": f"ourbitofficial/{post_id}"})
+        if item:
+            rows.append(item)
+    return rows
+
+
 class PreListingHunter:
     async def scan(self, since_hours: int = 72, force: bool = False) -> dict[str, Any]:
         now = time.time()
@@ -478,6 +512,7 @@ class PreListingHunter:
                 "Gate.io": _fetch_html_exchange(client, "Gate.io"),
                 "Ourbit HTML": _fetch_html_exchange(client, "Ourbit"),
                 "Ourbit RSS": _fetch_ourbit_rss(client),
+                "Ourbit Telegram": _fetch_ourbit_telegram(client),
             }
             names = list(tasks)
             results = await asyncio.gather(*tasks.values(), return_exceptions=True)
@@ -487,7 +522,7 @@ class PreListingHunter:
                 if isinstance(result, Exception):
                     source_status[name] = {"ok": False, "error": str(result)[:220], "count": 0}
                 else:
-                    source_status[name] = {"ok": True, "count": len(result), "method": ("official_rss" if name == "Ourbit RSS" else "official_html" if name == "Ourbit HTML" else EXCHANGES[name]["kind"])}
+                    source_status[name] = {"ok": True, "count": len(result), "method": ("official_rss" if name == "Ourbit RSS" else "official_telegram" if name == "Ourbit Telegram" else "official_html" if name == "Ourbit HTML" else EXCHANGES[name]["kind"])}
                     items.extend(result)
             cutoff = datetime.now(timezone.utc) - timedelta(hours=max(1, min(since_hours, 720)))
             filtered = []
