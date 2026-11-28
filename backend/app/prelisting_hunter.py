@@ -437,7 +437,7 @@ async def _send_ourbit_listing_alerts(client: httpx.AsyncClient, items: list[dic
             continue
         if re.search(r"\b(?:futures|perpetual|delist|delisting)\b", text_blob, re.I):
             continue
-        key = re.sub(r"[^A-Za-z0-9_-]", "_", str(item.get("id") or item.get("url") or _listing_symbol(item)))[:90]
+        key = re.sub(r"[^A-Za-z0-9_-]", "_", str(item.get("url") or item.get("id") or _listing_symbol(item)))[:90]
         candidates.setdefault(key, item)
     sent = 0
     for key, item in candidates.items():
@@ -500,11 +500,13 @@ class PreListingHunter:
                     except ValueError:
                         pass
                 filtered.append(item)
+            # Send Ourbit listing notices immediately, before any DEX/security enrichment.
+            listing_telegram_status = await _send_ourbit_listing_alerts(client, filtered)
             # Enrich a bounded set to protect public API rate limits.
             await asyncio.gather(*(_enrich(client, item) for item in filtered[:30]), return_exceptions=True)
             filtered.sort(key=lambda x: (x.get("score", 0), x.get("published_at") or ""), reverse=True)
             telegram_status = await _send_telegram_alerts(client, filtered)
-            telegram_status["ourbit_listing_alerts"] = await _send_ourbit_listing_alerts(client, filtered)
+            telegram_status["ourbit_listing_alerts"] = listing_telegram_status
             payload = {
                 "status": "completed" if any(x.get("ok") for x in source_status.values()) else "sources_unavailable",
                 "generated_at": datetime.now(timezone.utc).isoformat(),
