@@ -391,6 +391,19 @@ def _listing_trade_time(item: dict[str, Any]) -> str:
     return match.group(2).strip() if match else "time not found in feed; check official notice"
 
 
+
+def _listing_is_future(item: dict[str, Any]) -> bool:
+    text_blob = str(item.get("title") or "") + " " + str(item.get("description") or "")
+    match = re.search(r"Trading for\s+[A-Z0-9]+/USDT\s*:\s*(\d{1,2}:\d{2}),\s*([A-Za-z]+\s+\d{1,2}\s+\d{4})\s*\(UTC\)", text_blob, re.I)
+    if not match:
+        return False
+    try:
+        opening = datetime.strptime(f"{match.group(1)} {match.group(2)}", "%H:%M %B %d %Y").replace(tzinfo=timezone.utc)
+        return opening > datetime.now(timezone.utc)
+    except ValueError:
+        return False
+
+
 async def _listing_alert_seen_before(client: httpx.AsyncClient, key: str) -> bool:
     if key in _listing_alert_seen:
         return True
@@ -438,7 +451,10 @@ async def _send_ourbit_listing_alerts(client: httpx.AsyncClient, items: list[dic
         if re.search(r"\b(?:futures|perpetual|delist|delisting)\b", text_blob, re.I):
             continue
         key = re.sub(r"[^A-Za-z0-9_-]", "_", str(item.get("url") or item.get("id") or _listing_symbol(item)))[:90]
-        candidates.setdefault(key, item)
+        current = candidates.get(key)
+        if current is None or len(str(item.get("description") or "")) > len(str(current.get("description") or "")):
+            candidates[key] = item
+    candidates = {key: item for key, item in candidates.items() if _listing_is_future(item)}
     sent = 0
     for key, item in candidates.items():
         if await _listing_alert_seen_before(client, key):
