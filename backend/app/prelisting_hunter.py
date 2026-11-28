@@ -35,6 +35,7 @@ CHAIN_HINTS = {
 CACHE_TTL = 45
 _cache: dict[str, Any] = {"at": 0.0, "payload": None}
 _telegram_seen: set[str] = set()
+_listing_alert_seen: set[str] = set()
 
 
 def _items(payload: Any) -> list[dict[str, Any]]:
@@ -77,7 +78,13 @@ def _timestamp(value: Any) -> str | None:
                 dt = dt.replace(tzinfo=timezone.utc)
             return dt.astimezone(timezone.utc).isoformat()
         except ValueError:
-            return None
+            try:
+                dt = parsedate_to_datetime(value)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt.astimezone(timezone.utc).isoformat()
+            except (TypeError, ValueError, OverflowError):
+                return None
     return None
 
 
@@ -343,6 +350,120 @@ async def _send_telegram_alerts(client: httpx.AsyncClient, items: list[dict[str,
     return {"configured": True, "sent": sent}
 
 
+
+async def _fetch_ourbit_rss(client: httpx.AsyncClient) -> list[dict[str, Any]]:
+    """Primary fast source for Ourbit's official RSS announcement feed."""
+    response = await client.get("https://www.ourbit.com/?feed=rss2",
+                                headers={"User-Agent": "ARAD-ListingMonitor/2.0"})
+    response.raise_for_status()
+    root = ET.fromstring(response.content)
+    rows = []
+    for node in root.findall(".//item")[:80]:
+        title = (node.findtext("title") or "").strip()
+        if not _looks_like_listing(title):
+            continue
+        desc = html.unescape(node.findtext("description") or "")
+        link = (node.findtext("link") or EXCHANGES["Ourbit"]["url"]).strip()
+        published = node.findtext("pubDate")
+        item = _normalise("Ourbit", {"title": title, "description": desc,
+                                    "url": link, "publishedAt": published,
+                                    "id": link or "Ourbit RSS:" + title})
+        if item:
+            rows.append(item)
+    return rows
+
+
+def _listing_symbol(item: dict[str, Any]) -> str:
+    text_blob = str(item.get("title") or "") + " " + str(item.get("description") or "")
+    match = re.search(r"\$([A-Z0-9]{2,15})", text_blob)
+    if match:
+        return match.group(1).upper()
+    match = re.search(r"\b[A-Z0-9]{2,15}\s*\(([A-Z0-9]{2,15})\)", text_blob)
+    if match:
+        return match.group(1).upper()
+    symbols = item.get("symbols") or []
+    return symbols[0] if symbols else "UNKNOWN"
+
+
+def _listing_trade_time(item: dict[str, Any]) -> str:
+    text_blob = str(item.get("title") or "") + " " + str(item.get("description") or "")
+    match = re.search(r"Trading for\s+([A-Z0-9]+/USDT)\s*:\s*(.+?\(UTC\))", text_blob, re.I)
+    return match.group(2).strip() if match else "time not found in feed; check official notice"
+
+
+async def _listing_alert_seen_before(client: httpx.AsyncClient, key: str) -> bool:
+    if key in _listing_alert_seen:
+        return True
+    redis_url = os.getenv("ARAD_LISTING_ALERT_REDIS_URL", os.getenv("UPSTASH_REDIS_REST_URL", "")).strip()
+    redis_token = os.getenv("ARAD_LISTING_ALERT_REDIS_TOKEN", os.getenv("UPSTASH_REDIS_REST_TOKEN", "")).strip()
+    if redis_url and redis_token:
+        try:
+            response = await client.get(f"{redis_url.rstrip('/')}/get/{key}",
+                                       headers={"Authorization": f"Bearer {redis_token}"})
+            response.raise_for_status()
+            if response.json().get("result"):
+                _listing_alert_seen.add(key)
+                return True
+        except Exception:
+            pass
+    return False
+
+
+async def _mark_listing_alert_seen(client: httpx.AsyncClient, key: str) -> None:
+    _listing_alert_seen.add(key)
+    redis_url = os.getenv("ARAD_LISTING_ALERT_REDIS_URL", os.getenv("UPSTASH_REDIS_REST_URL", "")).strip()
+    redis_token = os.getenv("ARAD_LISTING_ALERT_REDIS_TOKEN", os.getenv("UPSTASH_REDIS_REST_TOKEN", "")).strip()
+    if redis_url and redis_token:
+        try:
+            response = await client.post(f"{redis_url.rstrip('/')}/set/{key}/1/ex/2592000",
+                                        headers={"Authorization": f"Bearer {redis_token}"})
+            response.raise_for_status()
+        except Exception:
+            pass
+
+
+async def _send_ourbit_listing_alerts(client: httpx.AsyncClient, items: list[dict[str, Any]]) -> dict[str, Any]:
+    """Alert on official spot listings without waiting for contract/DEX security enrichment."""
+    token = os.getenv("ARAD_PRELISTING_BOT_TOKEN", "").strip()
+    chat_id = os.getenv("ARAD_PRELISTING_CHAT_ID", "").strip()
+    if not token or not chat_id:
+        return {"configured": False, "sent": 0}
+    candidates: dict[str, dict[str, Any]] = {}
+    for item in items:
+        if item.get("exchange") != "Ourbit":
+            continue
+        text_blob = f"{item.get('title', '')} {item.get('description', '')}"
+        if not re.search(r"\b(?:will\s+list|new\s+listing)\b", text_blob, re.I):
+            continue
+        if re.search(r"\b(?:futures|perpetual|delist|delisting)\b", text_blob, re.I):
+            continue
+        key = re.sub(r"[^A-Za-z0-9_-]", "_", str(item.get("id") or item.get("url") or _listing_symbol(item)))[:90]
+        candidates.setdefault(key, item)
+    sent = 0
+    for key, item in candidates.items():
+        if await _listing_alert_seen_before(client, key):
+            continue
+        message = (
+            "🚨 ARAD — OURBIT OFFICIAL LISTING ALERT\n"
+            f"نماد: {_listing_symbol(item)}\n"
+            "نوع اطلاعیه: Spot / Listing\n"
+            "وضعیت: اطلاعیه رسمی شناسایی شد — هشدار پیش از شروع معامله\n\n"
+            f"زمان شروع معاملات (UTC): {_listing_trade_time(item)}\n"
+            f"اطلاعیه رسمی: {item.get('url')}\n"
+            "⚠️ این هشدار خبر لیست‌شدن است، نه سیگنال خرید."
+        )
+        try:
+            response = await client.post(f"https://api.telegram.org/bot{token}/sendMessage",
+                                        json={"chat_id": chat_id, "text": message, "disable_web_page_preview": True})
+            response.raise_for_status()
+            if response.json().get("ok"):
+                await _mark_listing_alert_seen(client, key)
+                sent += 1
+        except Exception:
+            continue
+    return {"configured": True, "sent": sent, "checked": len(candidates)}
+
+
 class PreListingHunter:
     async def scan(self, since_hours: int = 72, force: bool = False) -> dict[str, Any]:
         now = time.time()
@@ -355,7 +476,8 @@ class PreListingHunter:
                 "KuCoin": _fetch_kucoin(client),
                 "MEXC": _fetch_mexc(client),
                 "Gate.io": _fetch_html_exchange(client, "Gate.io"),
-                "Ourbit": _fetch_html_exchange(client, "Ourbit"),
+                "Ourbit HTML": _fetch_html_exchange(client, "Ourbit"),
+                "Ourbit RSS": _fetch_ourbit_rss(client),
             }
             names = list(tasks)
             results = await asyncio.gather(*tasks.values(), return_exceptions=True)
@@ -365,7 +487,7 @@ class PreListingHunter:
                 if isinstance(result, Exception):
                     source_status[name] = {"ok": False, "error": str(result)[:220], "count": 0}
                 else:
-                    source_status[name] = {"ok": True, "count": len(result), "method": EXCHANGES[name]["kind"]}
+                    source_status[name] = {"ok": True, "count": len(result), "method": ("official_rss" if name == "Ourbit RSS" else "official_html" if name == "Ourbit HTML" else EXCHANGES[name]["kind"])}
                     items.extend(result)
             cutoff = datetime.now(timezone.utc) - timedelta(hours=max(1, min(since_hours, 720)))
             filtered = []
@@ -382,6 +504,7 @@ class PreListingHunter:
             await asyncio.gather(*(_enrich(client, item) for item in filtered[:30]), return_exceptions=True)
             filtered.sort(key=lambda x: (x.get("score", 0), x.get("published_at") or ""), reverse=True)
             telegram_status = await _send_telegram_alerts(client, filtered)
+            telegram_status["ourbit_listing_alerts"] = await _send_ourbit_listing_alerts(client, filtered)
             payload = {
                 "status": "completed" if any(x.get("ok") for x in source_status.values()) else "sources_unavailable",
                 "generated_at": datetime.now(timezone.utc).isoformat(),
